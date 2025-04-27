@@ -1,6 +1,6 @@
 ## Abhängigkeiten (Gesamt)
 
-Die Projekte nutzen die folgenden externen Bibliotheken, die meist über CDN eingebunden werden:
+Die Projekte haben die folgenden externen Bibliotheken, die meist über CDN eingebunden werden:
 
 * [Tailwind CSS](https://tailwindcss.com/) (MIT Lizenz) - Wird in allen Projekten für das Styling verwendet.
 * [Chart.js](https://www.chartjs.org/) (MIT Lizenz) - Für die Histogramme und Verteilungsdiagramme.
