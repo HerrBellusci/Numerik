@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktive Archimedes Methode - Animation</title>
+    <title>Interaktive Archimedes Methode - Visualisierung der Herleitung</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // MathJax Konfiguration für LaTeX-Rendering
         MathJax = {
           tex: {
             inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -20,134 +21,349 @@
       src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
     </script>
     <style>
-        /* Additional styles for SVG text */
+        /* Zusätzliche Stile für SVG-Text und Layout */
         .svg-text {
             font-family: sans-serif;
-            font-size: 8px;
-            fill: #333;
+            font-size: 7px; /* Slightly smaller for potentially more labels */
+            fill: #1f2937; /* Darker gray */
             pointer-events: none;
+            text-anchor: middle; /* Center text on coordinates */
         }
-        /* Center SVG container */
+        .label-line {
+            stroke: #6b7280; /* Gray */
+            stroke-width: 0.8;
+            stroke-dasharray: 2, 2;
+        }
+        .highlight-line {
+            stroke: #ef4444; /* Red */
+            stroke-width: 1.5;
+        }
+        .highlight-line-secondary {
+            stroke: #3b82f6; /* Blue */
+            stroke-width: 1.5;
+        }
         .svg-container {
             max-width: 600px;
-            margin: 2rem auto; /* Add some margin */
+            margin: 1rem auto;
         }
-        /* Responsive SVG */
         svg {
             display: block;
             width: 100%;
             height: auto;
-            max-height: 70vh; /* Allow slightly more height */
+            max-height: 65vh; /* Adjust max height if needed */
+            border: 1px solid #e5e7eb; /* Light border for the SVG area */
+            background-color: #f9fafb; /* Very light gray background */
         }
-        /* Style buttons */
+        /* Button Styling */
         .btn {
-            @apply px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed;
+            @apply inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+        /* Container für die Herleitung */
+        .derivation-container {
+            max-width: 800px; /* Wider container for text */
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+        }
+        /* Styling für den Herleitungstext */
+        .derivation-container h2 {
+            @apply text-xl font-semibold text-gray-800 mb-3;
+        }
+        .derivation-container h3 {
+            @apply text-lg font-medium text-gray-700 mt-4 mb-2;
+        }
+        .derivation-container p, .derivation-container ul {
+            @apply text-gray-700 mb-3 leading-relaxed;
+        }
+        .derivation-container code {
+            @apply bg-gray-100 text-sm px-1 py-0.5 rounded;
+        }
+        /* MathJax display math centering */
+         mjx-container[jax="SVG"][display="true"] {
+            display: block;
+            text-align: center;
+            margin: 1em 0;
         }
     </style>
 </head>
-<body class="bg-gray-100 p-4 md:p-8 font-sans">
+<body class="bg-gray-100 p-4 md:p-6 font-sans">
 
-    <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">Interaktive Visualisierung: Archimedes Methode</h1>
+    <h1 class="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">Interaktive Visualisierung: Archimedes Methode</h1>
 
-    <div class="flex justify-center space-x-4 mb-6">
-        <button id="double-sides-btn" class="btn">Seiten verdoppeln ($n \to 2n$)</button>
-        <button id="reset-btn" class="btn bg-gray-500 hover:bg-gray-600">Zurück zum Quadrat ($n=4$)</button>
+    <div class="flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
+        <button id="double-sides-btn" class="btn w-full sm:w-auto">Seiten verdoppeln ($n \to 2n$)</button>
+        <button id="reset-btn" class="btn bg-gray-500 hover:bg-gray-600 w-full sm:w-auto">Zurück zum Quadrat ($n=4$)</button>
+        <span class="text-gray-700">Seitenanzahl: <span id="n-sides-display" class="font-semibold">4</span></span>
     </div>
 
-    <div class="svg-container bg-white p-4 rounded-lg shadow-md">
+    <div class="svg-container bg-white p-1 sm:p-2 rounded-lg shadow-md border border-gray-200">
         <svg id="visualization-svg" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <marker id="arrowhead" markerWidth="5" markerHeight="3.5" refX="0" refY="1.75" orient="auto">
-                    <polygon points="0 0, 5 1.75, 0 3.5" fill="black" />
-                </marker>
-            </defs>
+            <circle cx="125" cy="125" r="2" fill="#1f2937" />
+            <text x="128" y="123" class="svg-text" style="font-size: 8px;">O</text> <circle cx="125" cy="125" r="100" fill="none" stroke="#3b82f6" stroke-width="1.5" />
+            <line x1="125" y1="125" x2="225" y2="125" stroke="#6b7280" stroke-width="0.8" />
+            <text x="175" y="120" class="svg-text" style="font-size: 8px;">$r=1$</text>
 
-            <circle cx="125" cy="125" r="2" fill="black" />
-            <text x="128" y="123" class="svg-text">M</text>
+            <polygon id="circumscribed-polygon" points="" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1.2" />
+            <polygon id="inscribed-polygon" points="" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981" stroke-width="1.2" />
 
-            <circle cx="125" cy="125" r="100" fill="none" stroke="blue" stroke-width="1.5" />
-            <line x1="125" y1="125" x2="225" y2="125" stroke="black" stroke-width="1" />
-            <text x="170" y="120" class="svg-text">$r=1$</text> <polygon id="circumscribed-polygon" points="" fill="none" stroke="red" stroke-width="1.5" />
+            <g id="derivation-geometry"></g>
 
-            <polygon id="inscribed-polygon" points="" fill="none" stroke="green" stroke-width="1.5" />
         </svg>
-         <p class="text-center text-gray-600 mt-2">Seitenanzahl: <span id="n-sides-display" class="font-semibold">4</span></p>
     </div>
+
+    <div class="derivation-container">
+        <h2>Geometrische Herleitung der Iterationsformeln</h2>
+        <p>
+            Stellen wir uns einen Kreis mit Radius $r=1$ vor (blauer Kreis). Wir betrachten ein einbeschriebenes, regelmäßiges $n$-Eck (grün) mit Seitenlänge $s_n$ und ein umschriebenes, regelmäßiges $n$-Eck (rot) mit Seitenlänge $S_n$. Ziel ist es, die Seitenlängen $s_{2n}$ und $S_{2n}$ für ein Polygon mit doppelter Eckenzahl ($2n$) nur aus $s_n$ und $S_n$ zu berechnen. Die Visualisierung oben zeigt die Konstruktion für $s_{2n}$.
+        </p>
+
+        <h3>1. Formel für $s_{neu}$ (einbeschriebenes Polygon)</h3>
+        <p>
+            Diese Formel basiert auf dem Satz des Pythagoras. Betrachten wir einen Sektor des Kreises mit dem Mittelpunkt O und zwei benachbarten Eckpunkten A und B des $n$-Ecks auf dem Kreis. Die Seite AB hat die Länge $s_n$. In der Visualisierung oben sind die Punkte O, A, C, D für das erste Segment dargestellt.
+        </p>
+        <ul>
+            <li><strong>Dreieck OAB:</strong> Gleichschenklig mit OA = OB = $r=1$.</li>
+            <li><strong>Höhe OC:</strong> Von O auf die Sehne AB. C halbiert AB, also ist $AC = s_n/2$.</li>
+            <li><strong>Dreieck OAC:</strong> Rechtwinklig bei C. Nach Pythagoras gilt:
+                $$ OC^2 + AC^2 = OA^2 $$
+                $$ OC^2 + (s_n/2)^2 = 1^2 $$
+                $$ OC = \sqrt{1 - s_n^2/4} = \frac{\sqrt{4 - s_n^2}}{2} $$
+                (In der Grafik als blaue Linie von O nach C dargestellt).
+            </li>
+            <li><strong>Punkt D:</strong> Verlängerung von OC bis zum Schnittpunkt mit dem Kreis. AD und DB sind Seiten des einbeschriebenen $2n$-Ecks ($AD = s_{2n}$).</li>
+            <li><strong>Länge CD:</strong> $CD = OD - OC = 1 - OC = 1 - \frac{\sqrt{4 - s_n^2}}{2}$.</li>
+            <li><strong>Dreieck ACD:</strong> Rechtwinklig bei C (rote Linien in der Grafik). Nach Pythagoras gilt:
+                $$ AD^2 = AC^2 + CD^2 $$
+                $$ s_{2n}^2 = (s_n/2)^2 + \left(1 - \frac{\sqrt{4 - s_n^2}}{2}\right)^2 $$
+                Nach Vereinfachung (wie im ursprünglichen Text gezeigt):
+                $$ s_{2n}^2 = 2 - \sqrt{4 - s_n^2} $$
+            </li>
+        </ul>
+        <p>
+            Daraus folgt durch Wurzelziehen die gesuchte Formel für $r=1$:
+            $$ s_{neu} = s_{2n} = \sqrt{2 - \sqrt{4 - s_n^2}} $$
+            Diese Formel benötigt also nur die Seitenlänge des vorherigen einbeschriebenen Polygons ($s_n$) und den Satz des Pythagoras.
+        </p>
+
+        <h3>2. Formel für $S_{neu}$ (umschriebenes Polygon)</h3>
+        <p>
+            Die Herleitung dieser Formel basiert auf Ähnlichkeitsbeziehungen zwischen Dreiecken. Eine gängige Formel ist:
+            $$ S_{neu} = S_{2n} = \frac{s_{2n} \cdot S_n}{ \sqrt{1 - (s_{2n}/2)^2} } $$
+            Eine andere, oft zitierte Formel, die das harmonische Mittel verwendet (aber möglicherweise auf einer anderen Definition von $s_n$ basiert oder für einen anderen Kontext gilt), ist:
+            $$ S'_{2n} = \frac{2 \cdot s_n \cdot S_n}{s_n + S_n} $$
+             Die erste Formel für $S_{2n}$ ist konsistent mit der Iteration, die $\pi$ annähert. Die Visualisierung konzentriert sich auf die Herleitung von $s_{2n}$.
+        </p>
+    </div>
+
 
     <script>
-        // --- Configuration ---
+        // --- DOM Elemente ---
         const svg = document.getElementById('visualization-svg');
         const inscribedPolygon = document.getElementById('inscribed-polygon');
         const circumscribedPolygon = document.getElementById('circumscribed-polygon');
+        const derivationGeometryGroup = document.getElementById('derivation-geometry'); // Gruppe für Herleitung
         const doubleSidesBtn = document.getElementById('double-sides-btn');
         const resetBtn = document.getElementById('reset-btn');
-        const nSidesDisplay = document.getElementById('n-sides-display'); // Display for number of sides
+        const nSidesDisplay = document.getElementById('n-sides-display');
 
+        // --- SVG Konstanten ---
         const centerX = 125;
         const centerY = 125;
-        const radiusSVG = 100; // Visual radius in SVG units
-        const maxSides = 1024; // Limit doubling
+        const radiusSVG = 100; // Visueller Radius in SVG Einheiten
+        const maxSides = 8192; // Limit für Verdopplung (mehr wird ungenau/langsam)
 
-        let currentSides = 4; // Start with a square
+        // --- Zustand ---
+        let currentSides = 4; // Start mit Quadrat
 
-        // --- Functions ---
+        // --- Hilfsfunktionen ---
 
         /**
-         * Calculates the vertices of a regular n-gon.
-         * @param {number} n - Number of sides.
-         * @param {number} rSvg - Visual radius in SVG units.
-         * @param {string} type - 'inscribed' or 'circumscribed'.
-         * @param {number} rotation - Initial rotation offset in radians.
-         * @returns {string} - SVG points string "x1,y1 x2,y2 ...".
+         * Konvertiert Polarkoordinaten (Radius, Winkel) in Kartesische Koordinaten.
+         * @param {number} r Radius.
+         * @param {number} angle Winkel in Radiant.
+         * @param {number} cx Zentrum X.
+         * @param {number} cy Zentrum Y.
+         * @returns {{x: number, y: number}} Kartesische Koordinaten.
+         */
+        function polarToCartesian(r, angle, cx, cy) {
+            return {
+                x: cx + r * Math.cos(angle),
+                y: cy + r * Math.sin(angle)
+            };
+        }
+
+        /**
+         * Erstellt ein SVG-Linien-Element.
+         * @param {number} x1 Start X.
+         * @param {number} y1 Start Y.
+         * @param {number} x2 Ende X.
+         * @param {number} y2 Ende Y.
+         * @param {string} className CSS-Klasse für Styling.
+         * @returns {SVGLineElement} Das erstellte Linien-Element.
+         */
+        function createSVGLine(x1, y1, x2, y2, className) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("class", className);
+            return line;
+        }
+
+        /**
+         * Erstellt ein SVG-Text-Element.
+         * @param {number} x X-Position.
+         * @param {number} y Y-Position.
+         * @param {string} text Inhalt des Texts.
+         * @param {string} className CSS-Klasse.
+         * @returns {SVGTextElement} Das erstellte Text-Element.
+         */
+        function createSVGText(x, y, text, className = "svg-text") {
+            const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textEl.setAttribute("x", x);
+            textEl.setAttribute("y", y);
+            textEl.setAttribute("class", className);
+            textEl.textContent = text;
+            return textEl;
+        }
+
+
+        /**
+         * Berechnet die Eckpunkte eines regelmäßigen n-Ecks.
+         * @param {number} n Anzahl der Seiten.
+         * @param {number} rSvg Visueller Radius in SVG Einheiten.
+         * @param {string} type 'inscribed' oder 'circumscribed'.
+         * @param {number} rotation Startrotation in Radiant.
+         * @returns {string} SVG points string "x1,y1 x2,y2 ...".
          */
         function calculateVertices(n, rSvg, type, rotation = 0) {
             let points = "";
             const angleStep = (2 * Math.PI) / n;
             let effectiveRadius = rSvg;
+            let baseRotation = -Math.PI / 2 - Math.PI / n; // Start top-center vertex
+
+             if (n === 4 && type === 'inscribed') {
+                 baseRotation = -Math.PI / 4; // Align square flat
+             }
+             if (n === 4 && type === 'circumscribed') {
+                 baseRotation = 0; // Align square flat
+             }
+
 
             if (type === 'circumscribed') {
                 effectiveRadius = rSvg / Math.cos(Math.PI / n);
-                rotation = Math.PI / n; // Rotate circumscribed polygon
+                 // No extra rotation needed if baseRotation is correct
             }
 
             for (let i = 0; i < n; i++) {
-                const angle = i * angleStep + rotation;
-                 // Adjust angle so the base of the square is horizontal for n=4
-                const adjustedAngle = angle - Math.PI / 4 - Math.PI / 2; // Adjust for SVG coordinate system & initial rotation
-                const x = centerX + effectiveRadius * Math.cos(adjustedAngle);
-                const y = centerY + effectiveRadius * Math.sin(adjustedAngle);
-                points += `${x.toFixed(2)},${y.toFixed(2)} `;
+                const angle = i * angleStep + baseRotation + rotation;
+                const { x, y } = polarToCartesian(effectiveRadius, angle, centerX, centerY);
+                points += `${x.toFixed(3)},${y.toFixed(3)} `;
             }
             return points.trim();
         }
 
         /**
-         * Updates the SVG polygons and the side count display.
-         * @param {number} n - Number of sides.
+         * Zeichnet die geometrischen Elemente für die Herleitung von s_2n.
+         * @param {number} n Aktuelle Anzahl der Seiten (des n-Ecks).
+         * @param {number} rSvg Visueller Radius.
+         * @param {number} cx Zentrum X.
+         * @param {number} cy Zentrum Y.
+         */
+        function drawDerivationGeometry(n, rSvg, cx, cy) {
+            // Alte Geometrie löschen
+            derivationGeometryGroup.innerHTML = '';
+
+            if (n < 3) return; // Nicht sinnvoll für n < 3
+
+            // Winkel für das erste Segment des n-Ecks
+            const angleStepN = (2 * Math.PI) / n;
+            const startAngle = -Math.PI / 2 - Math.PI / n; // Gleicher Start wie Polygon
+
+            // Punkte berechnen
+            const O = { x: cx, y: cy };
+            const A = polarToCartesian(rSvg, startAngle, cx, cy);
+            const B = polarToCartesian(rSvg, startAngle + angleStepN, cx, cy);
+
+            // Mittelpunkt C von AB
+            const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+
+            // Punkt D auf dem Kreis (auf der Linie OC verlängert)
+            // Winkel von OC ist der Mittelwert der Winkel von OA und OB
+            const angleOC = startAngle + angleStepN / 2;
+            const D = polarToCartesian(rSvg, angleOC, cx, cy); // D liegt auf dem Kreis
+
+            // --- SVG Elemente zeichnen ---
+
+            // Linien für Dreieck OAC (Basis für OC Berechnung)
+            derivationGeometryGroup.appendChild(createSVGLine(O.x, O.y, A.x, A.y, "label-line")); // OA (Radius)
+            derivationGeometryGroup.appendChild(createSVGLine(O.x, O.y, C.x, C.y, "highlight-line-secondary")); // OC (Höhe)
+            derivationGeometryGroup.appendChild(createSVGLine(A.x, A.y, C.x, C.y, "highlight-line-secondary")); // AC (s_n / 2)
+
+            // Linien für Dreieck ACD (Basis für s_2n Berechnung)
+             // AC wurde schon gezeichnet (highlight-line-secondary), machen wir es rot für ACD
+            derivationGeometryGroup.appendChild(createSVGLine(A.x, A.y, C.x, C.y, "highlight-line")); // AC (s_n / 2) - nochmal in rot
+            derivationGeometryGroup.appendChild(createSVGLine(C.x, C.y, D.x, D.y, "highlight-line")); // CD
+            derivationGeometryGroup.appendChild(createSVGLine(A.x, A.y, D.x, D.y, "highlight-line")); // AD (s_2n)
+
+             // Linie OD (Radius)
+            derivationGeometryGroup.appendChild(createSVGLine(O.x, O.y, D.x, D.y, "label-line"));
+
+            // Punkte beschriften (leicht versetzt für Lesbarkeit)
+            derivationGeometryGroup.appendChild(createSVGText(O.x + 3, O.y - 3, "O"));
+            derivationGeometryGroup.appendChild(createSVGText(A.x + (A.x - cx > 0 ? 5 : -5), A.y + (A.y - cy > 0 ? 5 : -5), "A"));
+            derivationGeometryGroup.appendChild(createSVGText(C.x + (C.x - cx > 0 ? 4 : -4), C.y + (C.y - cy > 0 ? 4 : -4), "C"));
+            derivationGeometryGroup.appendChild(createSVGText(D.x + (D.x - cx > 0 ? 5 : -5), D.y + (D.y - cy > 0 ? 5 : -5), "D"));
+
+            // Optional: Rechten Winkel bei C markieren (kleines Quadrat)
+            const anglePerpendicular = angleOC + Math.PI / 2; // Winkel senkrecht zu OC
+            const markerSize = 3;
+            const p1 = polarToCartesian(markerSize, angleOC, C.x, C.y);
+            const p2 = polarToCartesian(markerSize * Math.sqrt(2), angleOC + Math.PI / 4, C.x, C.y);
+            const p3 = polarToCartesian(markerSize, angleOC + Math.PI / 2, C.x, C.y);
+            const rightAngleMarker = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            rightAngleMarker.setAttribute("points", `${C.x},${C.y} ${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y}`);
+            rightAngleMarker.setAttribute("fill", "none");
+            rightAngleMarker.setAttribute("stroke", "#ef4444"); // Red
+            rightAngleMarker.setAttribute("stroke-width", "0.8");
+            derivationGeometryGroup.appendChild(rightAngleMarker);
+        }
+
+
+        /**
+         * Aktualisiert die SVG-Polygone, die Herleitungsgeometrie und die Seitenanzeige.
+         * @param {number} n Anzahl der Seiten.
          */
         function updateVisualization(n) {
             currentSides = n;
 
-            // Update SVG Polygons
-            const inscribedPoints = calculateVertices(n, radiusSVG, 'inscribed', 0);
-            const circumscribedPoints = calculateVertices(n, radiusSVG, 'circumscribed', 0);
+            // SVG Polygone aktualisieren
+            const inscribedPoints = calculateVertices(n, radiusSVG, 'inscribed');
+            const circumscribedPoints = calculateVertices(n, radiusSVG, 'circumscribed');
 
             inscribedPolygon.setAttribute('points', inscribedPoints);
             circumscribedPolygon.setAttribute('points', circumscribedPoints);
 
-            // Update side count display
+            // Herleitungsgeometrie für s_2n zeichnen
+            drawDerivationGeometry(n, radiusSVG, centerX, centerY);
+
+            // Seitenanzeige aktualisieren
             nSidesDisplay.textContent = n;
 
-            // Disable button if max sides reached
+            // Button deaktivieren, wenn maximale Seitenzahl erreicht
             doubleSidesBtn.disabled = n >= maxSides;
 
-            // Re-render MathJax for buttons if necessary
-            // if (typeof MathJax !== 'undefined' && MathJax.typeset) {
-            //     MathJax.typeset(); // Might be needed if button text changes dynamically
-            // }
+            // MathJax neu rendern, falls nötig (z.B. wenn Button-Text Formeln enthält)
+            if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                 MathJax.typesetPromise(); // Sicherstellen, dass Formeln im Text/Buttons gerendert werden
+            }
         }
 
-        // --- Event Listeners ---
+        // --- Event Listener ---
         doubleSidesBtn.addEventListener('click', () => {
             if (currentSides < maxSides) {
                 updateVisualization(currentSides * 2);
@@ -155,13 +371,25 @@
         });
 
         resetBtn.addEventListener('click', () => {
-            updateVisualization(4);
+            updateVisualization(4); // Zurück zum Quadrat
         });
 
-        // --- Initial Load ---
-        updateVisualization(currentSides); // Initialize with n=4
+        // --- Initiales Laden ---
+        // Warten bis MathJax geladen ist, bevor die erste Visualisierung erfolgt
+        window.addEventListener('load', () => {
+             if (typeof MathJax !== 'undefined' && MathJax.startup) {
+                MathJax.startup.promise.then(() => {
+                    updateVisualization(currentSides); // Initial mit n=4
+                });
+            } else {
+                 // Fallback, falls MathJax nicht richtig lädt
+                 console.warn("MathJax not fully loaded, rendering initial state without waiting.");
+                 updateVisualization(currentSides);
+            }
+        });
 
     </script>
 
 </body>
 </html>
+
