@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Archimedes Methode - Animation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          },
+          svg: {
+            fontCache: 'global'
+          }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <style>
+        /* Additional styles for SVG text */
+        .svg-text {
+            font-family: sans-serif;
+            font-size: 8px;
+            fill: #333;
+            pointer-events: none;
+        }
+        /* Center SVG container */
+        .svg-container {
+            max-width: 600px;
+            margin: 2rem auto; /* Add some margin */
+        }
+        /* Responsive SVG */
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 70vh; /* Allow slightly more height */
+        }
+        /* Style buttons */
+        .btn {
+            @apply px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-8 font-sans">
+
+    <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">Interaktive Visualisierung: Archimedes Methode</h1>
+
+    <div class="flex justify-center space-x-4 mb-6">
+        <button id="double-sides-btn" class="btn">Seiten verdoppeln ($n \to 2n$)</button>
+        <button id="reset-btn" class="btn bg-gray-500 hover:bg-gray-600">Zurück zum Quadrat ($n=4$)</button>
+    </div>
+
+    <div class="svg-container bg-white p-4 rounded-lg shadow-md">
+        <svg id="visualization-svg" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arrowhead" markerWidth="5" markerHeight="3.5" refX="0" refY="1.75" orient="auto">
+                    <polygon points="0 0, 5 1.75, 0 3.5" fill="black" />
+                </marker>
+            </defs>
+
+            <circle cx="125" cy="125" r="2" fill="black" />
+            <text x="128" y="123" class="svg-text">M</text>
+
+            <circle cx="125" cy="125" r="100" fill="none" stroke="blue" stroke-width="1.5" />
+            <line x1="125" y1="125" x2="225" y2="125" stroke="black" stroke-width="1" />
+            <text x="170" y="120" class="svg-text">$r=1$</text> <polygon id="circumscribed-polygon" points="" fill="none" stroke="red" stroke-width="1.5" />
+
+            <polygon id="inscribed-polygon" points="" fill="none" stroke="green" stroke-width="1.5" />
+        </svg>
+         <p class="text-center text-gray-600 mt-2">Seitenanzahl: <span id="n-sides-display" class="font-semibold">4</span></p>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const svg = document.getElementById('visualization-svg');
+        const inscribedPolygon = document.getElementById('inscribed-polygon');
+        const circumscribedPolygon = document.getElementById('circumscribed-polygon');
+        const doubleSidesBtn = document.getElementById('double-sides-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const nSidesDisplay = document.getElementById('n-sides-display'); // Display for number of sides
+
+        const centerX = 125;
+        const centerY = 125;
+        const radiusSVG = 100; // Visual radius in SVG units
+        const maxSides = 1024; // Limit doubling
+
+        let currentSides = 4; // Start with a square
+
+        // --- Functions ---
+
+        /**
+         * Calculates the vertices of a regular n-gon.
+         * @param {number} n - Number of sides.
+         * @param {number} rSvg - Visual radius in SVG units.
+         * @param {string} type - 'inscribed' or 'circumscribed'.
+         * @param {number} rotation - Initial rotation offset in radians.
+         * @returns {string} - SVG points string "x1,y1 x2,y2 ...".
+         */
+        function calculateVertices(n, rSvg, type, rotation = 0) {
+            let points = "";
+            const angleStep = (2 * Math.PI) / n;
+            let effectiveRadius = rSvg;
+
+            if (type === 'circumscribed') {
+                effectiveRadius = rSvg / Math.cos(Math.PI / n);
+                rotation = Math.PI / n; // Rotate circumscribed polygon
+            }
+
+            for (let i = 0; i < n; i++) {
+                const angle = i * angleStep + rotation;
+                 // Adjust angle so the base of the square is horizontal for n=4
+                const adjustedAngle = angle - Math.PI / 4 - Math.PI / 2; // Adjust for SVG coordinate system & initial rotation
+                const x = centerX + effectiveRadius * Math.cos(adjustedAngle);
+                const y = centerY + effectiveRadius * Math.sin(adjustedAngle);
+                points += `${x.toFixed(2)},${y.toFixed(2)} `;
+            }
+            return points.trim();
+        }
+
+        /**
+         * Updates the SVG polygons and the side count display.
+         * @param {number} n - Number of sides.
+         */
+        function updateVisualization(n) {
+            currentSides = n;
+
+            // Update SVG Polygons
+            const inscribedPoints = calculateVertices(n, radiusSVG, 'inscribed', 0);
+            const circumscribedPoints = calculateVertices(n, radiusSVG, 'circumscribed', 0);
+
+            inscribedPolygon.setAttribute('points', inscribedPoints);
+            circumscribedPolygon.setAttribute('points', circumscribedPoints);
+
+            // Update side count display
+            nSidesDisplay.textContent = n;
+
+            // Disable button if max sides reached
+            doubleSidesBtn.disabled = n >= maxSides;
+
+            // Re-render MathJax for buttons if necessary
+            // if (typeof MathJax !== 'undefined' && MathJax.typeset) {
+            //     MathJax.typeset(); // Might be needed if button text changes dynamically
+            // }
+        }
+
+        // --- Event Listeners ---
+        doubleSidesBtn.addEventListener('click', () => {
+            if (currentSides < maxSides) {
+                updateVisualization(currentSides * 2);
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            updateVisualization(4);
+        });
+
+        // --- Initial Load ---
+        updateVisualization(currentSides); // Initialize with n=4
+
+    </script>
+
+</body>
+</html>
