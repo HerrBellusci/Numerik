@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Archimedes Methode - Visualisierung (Start Dreieck)</title> <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // MathJax Konfiguration für LaTeX-Rendering (wird für Buttons benötigt)
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          },
+          svg: {
+            fontCache: 'global'
+          }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <style>
+        /* Zusätzliche Stile für SVG-Text und Layout */
+        .svg-text {
+            font-family: sans-serif;
+            font-size: 7px; /* Slightly smaller for potentially more labels */
+            fill: #1f2937; /* Darker gray */
+            pointer-events: none;
+            text-anchor: middle; /* Center text on coordinates */
+        }
+        .label-line {
+            stroke: #6b7280; /* Gray */
+            stroke-width: 0.8;
+            stroke-dasharray: 2, 2;
+        }
+        .highlight-line {
+            stroke: #ef4444; /* Red */
+            stroke-width: 1.5;
+        }
+        .highlight-line-secondary {
+            stroke: #3b82f6; /* Blue */
+            stroke-width: 1.5;
+        }
+        .svg-container {
+            max-width: 600px;
+            margin: 1rem auto; /* Zentrierung und Abstand */
+        }
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            /* Höhe kann angepasst werden, da kein Text mehr da ist */
+            max-height: 80vh;
+            border: 1px solid #e5e7eb; /* Light border for the SVG area */
+            background-color: #f9fafb; /* Very light gray background */
+            border-radius: 0.5rem; /* Abgerundete Ecken für SVG-Bereich */
+        }
+        /* Button Styling */
+        .btn {
+            @apply inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+         /* MathJax display math centering (falls im Button verwendet) */
+         mjx-container[jax="SVG"][display="true"] {
+            display: inline-block; /* Anpassen für Buttons */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-6 font-sans flex flex-col items-center"> <h1 class="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">Interaktive Visualisierung: Archimedes Methode (Start Dreieck)</h1>
+
+    <div class="flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
+        <button id="double-sides-btn" class="btn w-full sm:w-auto">Seiten verdoppeln ($n \to 2n$)</button>
+        <button id="reset-btn" class="btn bg-gray-500 hover:bg-gray-600 w-full sm:w-auto">Zurück zum Dreieck ($n=3$)</button>
+        <span class="text-gray-700">Seitenanzahl: <span id="n-sides-display" class="font-semibold">3</span></span>
+    </div>
+
+    <div class="svg-container bg-white p-1 sm:p-2 rounded-lg shadow-md border border-gray-200">
+        <svg id="visualization-svg" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="125" cy="125" r="2" fill="#1f2937" />
+            <text x="128" y="123" class="svg-text" style="font-size: 8px;">O</text>
+            <circle cx="125" cy="125" r="100" fill="none" stroke="#3b82f6" stroke-width="1.5" />
+            <line x1="125" y1="125" x2="225" y2="125" stroke="#6b7280" stroke-width="0.8" />
+            <text x="175" y="120" class="svg-text" style="font-size: 8px;">$r=1$</text>
+
+            <polygon id="circumscribed-polygon" points="" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1.2" />
+            <polygon id="inscribed-polygon" points="" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981" stroke-width="1.2" />
+
+            <g id="derivation-geometry"></g>
+
+        </svg>
+    </div>
+
+    <script>
+        // --- DOM Elemente ---
+        const svg = document.getElementById('visualization-svg');
+        const inscribedPolygon = document.getElementById('inscribed-polygon');
+        const circumscribedPolygon = document.getElementById('circumscribed-polygon');
+        const derivationGeometryGroup = document.getElementById('derivation-geometry'); // Gruppe für Herleitung
+        const doubleSidesBtn = document.getElementById('double-sides-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const nSidesDisplay = document.getElementById('n-sides-display');
+
+        // --- SVG Konstanten ---
+        const centerX = 125;
+        const centerY = 125;
+        const radiusSVG = 100; // Visueller Radius in SVG Einheiten
+        const maxSides = 8192; // Limit für Verdopplung (mehr wird ungenau/langsam)
+
+        // --- Zustand ---
+        let currentSides = 3; // Start mit Dreieck (n=3)
+
+        // --- Hilfsfunktionen ---
+
+        /**
+         * Konvertiert Polarkoordinaten (Radius, Winkel) in Kartesische Koordinaten.
+         * @param {number} r Radius.
+         * @param {number} angle Winkel in Radiant.
+         * @param {number} cx Zentrum X.
+         * @param {number} cy Zentrum Y.
+         * @returns {{x: number, y: number}} Kartesische Koordinaten.
+         */
+        function polarToCartesian(r, angle, cx, cy) {
+            return {
+                x: cx + r * Math.cos(angle),
+                y: cy + r * Math.sin(angle)
+            };
+        }
+
+        /**
+         * Erstellt ein SVG-Linien-Element.
+         * @param {number} x1 Start X.
+         * @param {number} y1 Start Y.
+         * @param {number} x2 Ende X.
+         * @param {number} y2 Ende Y.
+         * @param {string} className CSS-Klasse für Styling.
+         * @returns {SVGLineElement} Das erstellte Linien-Element.
+         */
+        function createSVGLine(x1, y1, x2, y2, className) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("class", className);
+            return line;
+        }
+
+        /**
+         * Erstellt ein SVG-Text-Element.
+         * @param {number} x X-Position.
+         * @param {number} y Y-Position.
+         * @param {string} text Inhalt des Texts.
+         * @param {string} className CSS-Klasse.
+         * @returns {SVGTextElement} Das erstellte Text-Element.
+         */
+        function createSVGText(x, y, text, className = "svg-text") {
+            const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textEl.setAttribute("x", x);
+            textEl.setAttribute("y", y);
+            textEl.setAttribute("class", className);
+            textEl.textContent = text;
+            return textEl;
+        }
+
+
+        /**
+         * Berechnet die Eckpunkte eines regelmäßigen n-Ecks.
+         * @param {number} n Anzahl der Seiten.
+         * @param {number} rSvg Visueller Radius in SVG Einheiten.
+         * @param {string} type 'inscribed' oder 'circumscribed'.
+         * @param {number} rotation Startrotation in Radiant.
+         * @returns {string} SVG points string "x1,y1 x2,y2 ...".
+         */
+        function calculateVertices(n, rSvg, type, rotation = 0) {
+            let points = "";
+            const angleStep = (2 * Math.PI) / n;
+            let effectiveRadius = rSvg;
+            // Standard-Rotation: Ein Eckpunkt zeigt nach oben (oder leicht versetzt)
+            let baseRotation = -Math.PI / 2; // Start top-center vertex for n=3
+
+            // Spezielle Ausrichtung für n=4 (optional, beeinflusst n=3 nicht)
+             if (n === 4 && type === 'inscribed') {
+                 baseRotation = -Math.PI / 4; // Align square flat
+             }
+             if (n === 4 && type === 'circumscribed') {
+                 baseRotation = 0; // Align square flat
+             }
+
+            // Anpassung für umschriebenes Polygon
+            if (type === 'circumscribed') {
+                effectiveRadius = rSvg / Math.cos(Math.PI / n);
+                 // Für n=3 soll die Basis horizontal sein, daher Rotation anpassen
+                 if (n === 3) {
+                    baseRotation = Math.PI / 2; // Rotiert so, dass Basis unten ist
+                 } else if (n !== 4) { // Für andere n (nicht 3 oder 4)
+                    baseRotation = -Math.PI / 2 + Math.PI / n; // Rotiert, sodass Ecken auf Tangenten liegen
+                 }
+            } else if (n === 3) {
+                 // Für n=3 einbeschrieben, Spitze nach oben
+                 baseRotation = -Math.PI / 2;
+            } else if (n !== 4) { // Für andere n (nicht 3 oder 4)
+                baseRotation = -Math.PI / 2 - Math.PI / n; // Standardausrichtung
+            }
+
+
+            for (let i = 0; i < n; i++) {
+                const angle = i * angleStep + baseRotation + rotation;
+                const { x, y } = polarToCartesian(effectiveRadius, angle, centerX, centerY);
+                points += `${x.toFixed(3)},${y.toFixed(3)} `;
+            }
+            return points.trim();
+        }
+
+        /**
+         * Zeichnet die geometrischen Elemente für die Herleitung von s_2n.
+         * @param {number} n Aktuelle Anzahl der Seiten (des n-Ecks).
+         * @param {number} rSvg Visueller Radius.
+         * @param {number} cx Zentrum X.
+         * @param {number} cy Zentrum Y.
+         */
+        function drawDerivationGeometry(n, rSvg, cx, cy) {
+            // Alte Geometrie löschen
+            derivationGeometryGroup.innerHTML = '';
+
+            if (n < 3) return; // Nicht sinnvoll für n < 3
+
+            // Winkel für das erste Segment des n-Ecks, angepasst an calculateVertices
+            let baseRotation = -Math.PI / 2;
+             if (n === 4) { baseRotation = -Math.PI / 4; }
+             else if (n !== 3) { baseRotation = -Math.PI / 2 - Math.PI / n; }
+
+            const angleStepN = (2 * Math.PI) / n;
+            const startAngle = baseRotation; // Startwinkel des ersten Eckpunkts
+
+            // Punkte berechnen
+            const O = { x: cx, y: cy };
+            const A = polarToCartesian(rSvg, startAngle, cx, cy);
+            const B = polarToCartesian(rSvg, startAngle + angleStepN, cx, cy);
+
+            // Mittelpunkt C von AB
+            const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+
+            // Punkt D auf dem Kreis (auf der Linie OC verlängert)
+            // Winkel von OC ist der Mittelwert der Winkel von OA und OB
+            const angleOC = startAngle + angleStepN / 2;
+            const D = polarToCartesian(rSvg, angleOC, cx, cy); // D liegt auf dem Kreis
+
+            // --- SVG Elemente zeichnen ---
+
+            // Linien für Dreieck OAC (Basis für OC Berechnung)
+            derivationGeometryGroup.appendChild(createSVGLine(O.x, O.y, A.x, A.y, "label-line")); // OA (Radius)
+            derivationGeometryGroup.appendChild(createSVGLine(O.x, O.y, C.x, C.y, "highlight-line-secondary")); // OC (Höhe)
+            derivationGeometryGroup.appendChild(createSVGLine(A.x, A.y, C.x, C.y, "highlight-line-secondary")); // AC (s_n / 2)
+
+            // Linien für Dreieck ACD (Basis für s_2n Berechnung)
+            derivationGeometryGroup.appendChild(createSVGLine(A.x, A.y, C.x, C.y, "highlight-line")); // AC (s_n / 2) - nochmal in rot
+            derivationGeometryGroup.appendChild(createSVGLine(C.x, C.y, D.x, D.y, "highlight-line")); // CD
+            derivationGeometryGroup.appendChild(createSVGLine(A.x, A.y, D.x, D.y, "highlight-line")); // AD (s_2n)
+
+             // Linie OD (Radius)
+            derivationGeometryGroup.appendChild(createSVGLine(O.x, O.y, D.x, D.y, "label-line"));
+
+            // Punkte beschriften (leicht versetzt für Lesbarkeit)
+            derivationGeometryGroup.appendChild(createSVGText(O.x + 3, O.y - 3, "O"));
+            derivationGeometryGroup.appendChild(createSVGText(A.x + (A.x - cx > 0 ? 5 : -5), A.y + (A.y - cy > 0 ? 5 : -5), "A"));
+            derivationGeometryGroup.appendChild(createSVGText(C.x + (C.x - cx > 0 ? 4 : -4), C.y + (C.y - cy > 0 ? 4 : -4), "C"));
+            derivationGeometryGroup.appendChild(createSVGText(D.x + (D.x - cx > 0 ? 5 : -5), D.y + (D.y - cy > 0 ? 5 : -5), "D"));
+
+            // Optional: Rechten Winkel bei C markieren (kleines Quadrat)
+            const anglePerpendicular = angleOC + Math.PI / 2; // Winkel senkrecht zu OC
+            const markerSize = 3;
+            const p1 = polarToCartesian(markerSize, angleOC, C.x, C.y);
+            const p2 = polarToCartesian(markerSize * Math.sqrt(2), angleOC + Math.PI / 4, C.x, C.y);
+            const p3 = polarToCartesian(markerSize, angleOC + Math.PI / 2, C.x, C.y);
+            const rightAngleMarker = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            rightAngleMarker.setAttribute("points", `${C.x},${C.y} ${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y}`);
+            rightAngleMarker.setAttribute("fill", "none");
+            rightAngleMarker.setAttribute("stroke", "#ef4444"); // Red
+            rightAngleMarker.setAttribute("stroke-width", "0.8");
+            derivationGeometryGroup.appendChild(rightAngleMarker);
+        }
+
+
+        /**
+         * Aktualisiert die SVG-Polygone, die Herleitungsgeometrie und die Seitenanzeige.
+         * @param {number} n Anzahl der Seiten.
+         */
+        function updateVisualization(n) {
+            currentSides = n;
+
+            // SVG Polygone aktualisieren
+            const inscribedPoints = calculateVertices(n, radiusSVG, 'inscribed');
+            const circumscribedPoints = calculateVertices(n, radiusSVG, 'circumscribed');
+
+            inscribedPolygon.setAttribute('points', inscribedPoints);
+            circumscribedPolygon.setAttribute('points', circumscribedPoints);
+
+            // Herleitungsgeometrie für s_2n zeichnen
+            drawDerivationGeometry(n, radiusSVG, centerX, centerY);
+
+            // Seitenanzeige aktualisieren
+            nSidesDisplay.textContent = n;
+
+            // Button deaktivieren, wenn maximale Seitenzahl erreicht
+            doubleSidesBtn.disabled = n >= maxSides;
+
+            // MathJax neu rendern, falls nötig (z.B. wenn Button-Text Formeln enthält)
+            if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                 MathJax.typesetPromise(); // Sicherstellen, dass Formeln im Text/Buttons gerendert werden
+            }
+        }
+
+        // --- Event Listener ---
+        doubleSidesBtn.addEventListener('click', () => {
+            if (currentSides < maxSides) {
+                updateVisualization(currentSides * 2);
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            updateVisualization(3); // Zurück zum Dreieck (n=3)
+        });
+
+        // --- Initiales Laden ---
+        // Warten bis MathJax geladen ist, bevor die erste Visualisierung erfolgt
+        window.addEventListener('load', () => {
+             if (typeof MathJax !== 'undefined' && MathJax.startup) {
+                MathJax.startup.promise.then(() => {
+                    updateVisualization(currentSides); // Initial mit n=3
+                });
+            } else {
+                 // Fallback, falls MathJax nicht richtig lädt
+                 console.warn("MathJax not fully loaded, rendering initial state without waiting.");
+                 updateVisualization(currentSides);
+            }
+        });
+
+    </script>
+
+</body>
+</html>
