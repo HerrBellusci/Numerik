@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktive Archimedes Methode - Visualisierung (Start Dreieck)</title> <script src="https://cdn.tailwindcss.com"></script>
+    <title>Interaktive Archimedes Methode - Visualisierung (Start Dreieck)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         // MathJax Konfiguration für LaTeX-Rendering (wird für Buttons benötigt)
         MathJax = {
@@ -23,7 +24,8 @@
         /* Zusätzliche Stile für SVG-Text und Layout */
         .svg-text {
             font-family: sans-serif;
-            font-size: 7px; /* Slightly smaller for potentially more labels */
+            /* Schriftgröße angepasst, da ViewBox größer ist */
+            font-size: 10px;
             fill: #1f2937; /* Darker gray */
             pointer-events: none;
             text-anchor: middle; /* Center text on coordinates */
@@ -42,7 +44,8 @@
             stroke-width: 1.5;
         }
         .svg-container {
-            max-width: 600px;
+            /* Container kann breiter sein, da SVG skaliert */
+            max-width: 700px;
             margin: 1rem auto; /* Zentrierung und Abstand */
         }
         svg {
@@ -50,7 +53,7 @@
             width: 100%;
             height: auto;
             /* Höhe kann angepasst werden, da kein Text mehr da ist */
-            max-height: 80vh;
+            max-height: 85vh; /* Etwas mehr Höhe erlaubt */
             border: 1px solid #e5e7eb; /* Light border for the SVG area */
             background-color: #f9fafb; /* Very light gray background */
             border-radius: 0.5rem; /* Abgerundete Ecken für SVG-Bereich */
@@ -65,7 +68,8 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 p-4 md:p-6 font-sans flex flex-col items-center"> <h1 class="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">Interaktive Visualisierung: Archimedes Methode (Start Dreieck)</h1>
+<body class="bg-gray-100 p-4 md:p-6 font-sans flex flex-col items-center">
+    <h1 class="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">Interaktive Visualisierung: Archimedes Methode (Start Dreieck)</h1>
 
     <div class="flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
         <button id="double-sides-btn" class="btn w-full sm:w-auto">Seiten verdoppeln ($n \to 2n$)</button>
@@ -74,14 +78,11 @@
     </div>
 
     <div class="svg-container bg-white p-1 sm:p-2 rounded-lg shadow-md border border-gray-200">
-        <svg id="visualization-svg" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+        <svg id="visualization-svg" viewBox="-100 -100 450 450" xmlns="http://www.w3.org/2000/svg">
             <circle cx="125" cy="125" r="2" fill="#1f2937" />
-            <text x="128" y="123" class="svg-text" style="font-size: 8px;">O</text>
-            <circle cx="125" cy="125" r="100" fill="none" stroke="#3b82f6" stroke-width="1.5" />
+            <text x="128" y="123" class="svg-text" style="font-size: 10px;">O</text> <circle cx="125" cy="125" r="100" fill="none" stroke="#3b82f6" stroke-width="1.5" />
             <line x1="125" y1="125" x2="225" y2="125" stroke="#6b7280" stroke-width="0.8" />
-            <text x="175" y="120" class="svg-text" style="font-size: 8px;">$r=1$</text>
-
-            <polygon id="circumscribed-polygon" points="" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1.2" />
+            <text x="175" y="120" class="svg-text" style="font-size: 10px;">$r=1$</text> <polygon id="circumscribed-polygon" points="" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1.2" />
             <polygon id="inscribed-polygon" points="" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981" stroke-width="1.2" />
 
             <g id="derivation-geometry"></g>
@@ -100,6 +101,7 @@
         const nSidesDisplay = document.getElementById('n-sides-display');
 
         // --- SVG Konstanten ---
+        // Diese Konstanten bleiben gleich, da sie die *logischen* Koordinaten definieren
         const centerX = 125;
         const centerY = 125;
         const radiusSVG = 100; // Visueller Radius in SVG Einheiten
