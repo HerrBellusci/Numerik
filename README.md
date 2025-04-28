@@ -1,11 +1,12 @@
-## Abhängigkeiten (Gesamt)
+Abhängigkeiten (Gesamt)
 
 Die Projekte haben die folgenden externen Bibliotheken, die meist über CDN eingebunden werden:
 
-* [Tailwind CSS](https://tailwindcss.com/) (MIT Lizenz) - Wird in allen Projekten für das Styling verwendet.
-* [Chart.js](https://www.chartjs.org/) (MIT Lizenz) - Für die Histogramme und Verteilungsdiagramme.
-* [MathJax](https://www.mathjax.org/) (Apache License 2.0) - Für die Darstellung von LaTeX-Formeln in mehreren Projekten.
-* [Inter Font](https://rsms.me/inter/) (SIL Open Font License 1.1) - Schriftart, die in den meisten Projekten verwendet wird.
+* [Tailwind CSS](https://tailwindcss.com/) ([MIT Lizenz](https://opensource.org/licenses/MIT)) - Wird in allen Projekten für das Styling verwendet.
+* [Chart.js](https://www.chartjs.org/) ([MIT Lizenz](https://opensource.org/licenses/MIT)) - Für die Histogramme und Verteilungsdiagramme.
+* [MathJax](https://www.mathjax.org/) ([Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)) - Für die Darstellung von LaTeX-Formeln in mehreren Projekten.
+* [Inter Font](https://fonts.google.com/specimen/Inter) ([SIL Open Font License 1.1](https://scripts.sil.org/OFL)) - Schriftart, die in den meisten Projekten verwendet wird.
+
 
 ## Lizenz
 
