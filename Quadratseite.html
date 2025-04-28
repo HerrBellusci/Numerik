@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quadratseite und Fläche (Parabel) - Erweitert</title>
+    <title>Visualisierung: Quadrat a vs 0.5a und Fläche a² vs 0.25a²</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for better visualization */
@@ -11,9 +11,11 @@
             font-family: 'Inter', sans-serif; /* Use Inter font */
         }
         canvas {
-            border: 1px solid #d1d5db; /* gray-300 */
             border-radius: 0.375rem; /* rounded-md */
-            background-color: #f9fafb; /* gray-50 */
+            display: block; /* Prevent extra space below canvas */
+            margin-left: auto; /* Center canvas */
+            margin-right: auto; /* Center canvas */
+            max-width: 100%; /* Ensure canvas scales down */
         }
         /* Style slider */
         input[type=range] {
@@ -57,15 +59,45 @@
             min-width: 50px; /* Ensure space for values */
             text-align: right;
         }
+        /* Ensure MathJax output aligns well */
+        mjx-container {
+             display: inline !important; /* Prevent block display */
+             text-align: initial !important; /* Reset text align if needed */
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <script>
+        window.MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']] // Define inline math delimiters
+          },
+          svg: {
+            fontCache: 'global'
+          },
+          startup: {
+            // This function runs when MathJax is ready
+            ready: () => {
+              MathJax.startup.defaultReady(); // Perform the default startup actions
+              MathJax.startup.promise.then(() => {
+                // Typeset the entire body after MathJax is fully loaded
+                MathJax.typesetPromise();
+                console.log('MathJax initial typesetting complete.');
+              });
+            }
+          }
+        };
+        </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body class="bg-gray-100 p-4 md:p-8 flex flex-col items-center min-h-screen">
 
     <div class="bg-white p-6 rounded-lg shadow-md w-full max-w-4xl">
-        <h1 class="text-2xl font-semibold text-center text-gray-700 mb-6">Visualisierung: Quadratseite 'a' vs '0.25a' und Fläche 'a²' vs '(0.25a)²'</h1>
+        <h1 class="text-2xl font-semibold text-center text-gray-700 mb-6">Visualisierung: Seite $a$ vs $0.5a$ und Fläche $a^2$ vs $0.25a^2$</h1>
 
         <div class="mb-6 px-4">
             <label for="aSlider" class="block text-sm font-medium text-gray-700 mb-2">Seitenlänge a:</label>
@@ -83,28 +115,28 @@
                 <span id="aValue" class="value-display">5.0</span>
             </div>
              <div class="text-center bg-yellow-50 p-3 rounded-md shadow-sm flex items-center space-x-2">
-                <span class="label-text">0.25a = </span>
-                <span id="aQuarterValue" class="value-display">1.3</span>
+                <span class="label-text">0.5a = </span>
+                <span id="aHalfValue" class="value-display">2.5</span>
             </div>
             <div class="text-center bg-green-50 p-3 rounded-md shadow-sm flex items-center space-x-2">
                 <span class="label-text">a² = </span>
                 <span id="aSquaredValue" class="value-display">25.0</span>
             </div>
              <div class="text-center bg-yellow-100 p-3 rounded-md shadow-sm flex items-center space-x-2">
-                <span class="label-text">(0.25a)² = </span>
-                <span id="aQuarterSquaredValue" class="value-display">1.6</span>
+                <span class="label-text">0.25a² = </span>
+                <span id="aQuarterSquaredAreaValue" class="value-display">6.3</span>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="text-center p-4 border border-gray-200 rounded-lg bg-white">
-                <h2 class="text-lg font-medium text-gray-600 mb-2">Quadrate (a und 0.25a)</h2>
-                <canvas id="squareCanvas" width="300" height="300" class="mx-auto"></canvas>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-md">
+            <div class="text-center">
+                 <h2 class="text-lg font-medium text-gray-600 mb-2">Quadrate (Seiten $a$ und $0.5a$)</h2>
+                <canvas id="squareCanvas" width="300" height="300"></canvas>
             </div>
 
-            <div class="text-center p-4 border border-gray-200 rounded-lg bg-white">
-                <h2 class="text-lg font-medium text-gray-600 mb-2">Parabeln (y = x² und y = (0.25x)²)</h2>
-                <canvas id="parabolaCanvas" width="300" height="300" class="mx-auto"></canvas>
+            <div class="text-center">
+                 <h2 class="text-lg font-medium text-gray-600 mb-2">Parabeln ($y = x^2$ und $y = 0.25x^2$)</h2>
+                <canvas id="parabolaCanvas" width="300" height="300"></canvas>
             </div>
         </div>
     </div>
@@ -113,108 +145,96 @@
         // Get DOM elements
         const slider = document.getElementById('aSlider');
         const aValueDisplay = document.getElementById('aValue');
-        const aQuarterValueDisplay = document.getElementById('aQuarterValue');
+        const aHalfValueDisplay = document.getElementById('aHalfValue');
         const aSquaredValueDisplay = document.getElementById('aSquaredValue');
-        const aQuarterSquaredValueDisplay = document.getElementById('aQuarterSquaredValue');
+        const aQuarterSquaredAreaValueDisplay = document.getElementById('aQuarterSquaredAreaValue');
         const squareCanvas = document.getElementById('squareCanvas');
         const parabolaCanvas = document.getElementById('parabolaCanvas');
         const sqCtx = squareCanvas.getContext('2d');
         const paCtx = parabolaCanvas.getContext('2d');
 
         // Constants for drawing
-        const maxA = parseFloat(slider.max); // Maximum value of 'a' from slider
-        const sqPadding = 30; // Padding for square canvas
-        const paPadding = 30; // Padding for parabola canvas
+        const maxA = parseFloat(slider.max);
+        const sqPadding = 30;
+        const paPadding = 30;
         const sqCanvasSize = squareCanvas.width;
         const paCanvasSize = parabolaCanvas.width;
 
         // --- Drawing Functions ---
 
-        // Function to draw the squares
         function drawSquare(a) {
-            sqCtx.clearRect(0, 0, sqCanvasSize, sqCanvasSize); // Clear canvas
-            sqCtx.fillStyle = "#f9fafb"; // bg-gray-50 for canvas background
-            sqCtx.fillRect(0, 0, sqCanvasSize, sqCanvasSize);
+            sqCtx.clearRect(0, 0, sqCanvasSize, sqCanvasSize);
 
-            // --- Outer Square (a) ---
             const maxDrawableSize = sqCanvasSize - 2 * sqPadding;
-            const side = (a / maxA) * maxDrawableSize; // Scaled side length for drawing
+            const side = (a / maxA) * maxDrawableSize;
             const x = (sqCanvasSize - side) / 2;
             const y = (sqCanvasSize - side) / 2;
 
-            // Draw the outer square (stroke only)
+            // Outer square
             sqCtx.strokeStyle = '#3b82f6'; // blue-500
             sqCtx.lineWidth = 2;
             sqCtx.strokeRect(x, y, side, side);
-
-            // Draw label 'a' for outer square
             sqCtx.fillStyle = '#3b82f6'; // blue-500
             sqCtx.font = '14px Inter';
             sqCtx.textAlign = 'center';
-            sqCtx.fillText('a', x + side / 2, y + side + 15); // Below the square
+            sqCtx.fillText('a', x + side / 2, y + side + 15);
             if (side > 20) {
                  sqCtx.textAlign = 'right';
-                 sqCtx.fillText('a', x - 5, y + side / 2 + 5); // Left of the square
+                 sqCtx.fillText('a', x - 5, y + side / 2 + 5);
             }
 
-            // --- Inner Square (0.25a) ---
-            const innerSide = 0.25 * side; // Side length of inner square is 25% of outer square's DRAWN side
-            const innerX = x + (side - innerSide) / 2; // Center the inner square
+            // Inner square
+            const innerSide = 0.5 * side;
+            const innerX = x + (side - innerSide) / 2;
             const innerY = y + (side - innerSide) / 2;
-
-            // Draw the inner square (filled)
             sqCtx.fillStyle = '#facc15'; // yellow-400
             sqCtx.fillRect(innerX, innerY, innerSide, innerSide);
-            sqCtx.strokeStyle = '#ca8a04'; // yellow-600 (border for contrast)
+            sqCtx.strokeStyle = '#ca8a04'; // yellow-600
             sqCtx.lineWidth = 1;
             sqCtx.strokeRect(innerX, innerY, innerSide, innerSide);
-
-
-            // Draw label '0.25a' for inner square (if space allows)
             if (innerSide > 25) {
                 sqCtx.fillStyle = '#a16207'; // yellow-700
                 sqCtx.font = '12px Inter';
                 sqCtx.textAlign = 'center';
-                sqCtx.fillText('0.25a', innerX + innerSide / 2, innerY + innerSide / 2 + 4); // Centered inside
+                sqCtx.fillText('0.5a', innerX + innerSide / 2, innerY + innerSide / 2 + 4);
             }
         }
 
-        // Function to draw the parabolas and the points
         function drawParabola(a) {
-            paCtx.clearRect(0, 0, paCanvasSize, paCanvasSize); // Clear canvas
-            paCtx.fillStyle = "#f9fafb"; // bg-gray-50 for canvas background
-            paCtx.fillRect(0, 0, paCanvasSize, paCanvasSize);
+            paCtx.clearRect(0, 0, paCanvasSize, paCanvasSize);
 
-            const maxX = maxA; // Max x-value corresponds to max 'a'
-            const maxY = maxA * maxA; // Max y-value is maxA squared (for the main parabola)
-
-            // Calculate scaling factors (based on the larger parabola y=x²)
+            const maxX = maxA;
+            const maxY = maxA * maxA;
             const scaleX = (paCanvasSize - 2 * paPadding) / maxX;
-            const scaleY = (paCanvasSize - 2 * paPadding) / (maxY * 1.05); // Use same scale for comparison
-
-            // --- Draw Axes ---
+            const scaleY = (paCanvasSize - 2 * paPadding) / (maxY * 1.05);
             const originX = paPadding;
             const originY = paCanvasSize - paPadding;
 
+            // Axes
             paCtx.strokeStyle = '#6b7280'; // gray-500
             paCtx.lineWidth = 1;
             paCtx.beginPath();
-            // Y-axis
-            paCtx.moveTo(originX, paPadding / 2);
+            paCtx.moveTo(originX, paPadding / 2 - 5);
             paCtx.lineTo(originX, originY);
-            // X-axis
-            paCtx.lineTo(paCanvasSize - paPadding / 2, originY);
+            paCtx.moveTo(originX - 4, paPadding / 2 + 5);
+            paCtx.lineTo(originX, paPadding / 2 - 5);
+            paCtx.lineTo(originX + 4, paPadding / 2 + 5);
+            paCtx.moveTo(originX, originY);
+            paCtx.lineTo(paCanvasSize - paPadding / 2 + 5, originY);
+            paCtx.moveTo(paCanvasSize - paPadding / 2 - 5, originY - 4);
+            paCtx.lineTo(paCanvasSize - paPadding / 2 + 5, originY);
+            paCtx.lineTo(paCanvasSize - paPadding / 2 - 5, originY + 4);
             paCtx.stroke();
 
             // Axis Labels
             paCtx.fillStyle = '#4b5563'; // gray-600
-            paCtx.font = '12px Inter';
+            paCtx.font = 'bold 14px Inter';
             paCtx.textAlign = 'center';
-            paCtx.fillText('x (Seite)', paCanvasSize - paPadding / 2, originY + 15); // X-axis label
+            paCtx.fillText('x', paCanvasSize - paPadding / 2 + 5, originY + 20);
             paCtx.textAlign = 'right';
-            paCtx.fillText('y (Fläche)', originX - 8, paPadding); // Y-axis label
+            paCtx.fillText('y', originX - 15, paPadding / 2 + 5);
 
-            // --- Draw Parabola (y = x^2) ---
+            // Parabola y = x^2
             paCtx.beginPath();
             paCtx.strokeStyle = '#10b981'; // emerald-500
             paCtx.lineWidth = 2;
@@ -227,121 +247,111 @@
             }
             paCtx.stroke();
 
-             // --- Draw Parabola (y = (0.25x)^2 = 0.0625 * x^2) ---
+            // Parabola y = 0.25 * x^2
             paCtx.beginPath();
             paCtx.strokeStyle = '#facc15'; // yellow-400
             paCtx.lineWidth = 2;
             for (let xPlot = 0; xPlot <= maxX; xPlot += 0.1) {
-                const yPlot = 0.0625 * xPlot * xPlot; // Use the formula for the second parabola
+                const yPlot = 0.25 * xPlot * xPlot;
                 const canvasX = originX + xPlot * scaleX;
-                const canvasY = originY - yPlot * scaleY; // Use the same scaleY
+                const canvasY = originY - yPlot * scaleY;
                  if (xPlot === 0) paCtx.moveTo(canvasX, canvasY);
                 else paCtx.lineTo(canvasX, canvasY);
             }
             paCtx.stroke();
 
-
-            // --- Draw Point (a, a^2) ---
+            // Point (a, a^2)
             const aSquared = a * a;
             const pointX_a = originX + a * scaleX;
             const pointY_a2 = originY - aSquared * scaleY;
-
-            // Draw the point
             paCtx.fillStyle = '#ef4444'; // red-500
             paCtx.beginPath();
             paCtx.arc(pointX_a, pointY_a2, 5, 0, 2 * Math.PI);
             paCtx.fill();
-
-            // Draw lines to axes for (a, a^2)
             paCtx.beginPath();
             paCtx.strokeStyle = '#ef4444'; // red-500
             paCtx.setLineDash([3, 3]);
             paCtx.lineWidth = 1;
-            paCtx.moveTo(originX, pointY_a2); // Line to Y axis
+            paCtx.moveTo(originX, pointY_a2);
             paCtx.lineTo(pointX_a, pointY_a2);
-            paCtx.lineTo(pointX_a, originY); // Line to X axis
+            paCtx.lineTo(pointX_a, originY);
             paCtx.stroke();
 
-
-            // --- Draw Point (a, (0.25a)^2) ---
-            const aQuarter = 0.25 * a;
-            const aQuarterSquared = aQuarter * aQuarter; // or 0.0625 * a * a
-            // const pointX_aQuarter = originX + aQuarter * scaleX; // X-coordinate is still 'a' for the input
-            const pointY_aQuarter2 = originY - aQuarterSquared * scaleY;
-
-            // Draw the second point (on the yellow parabola at x=a)
+            // Point (a, 0.25a^2)
+            const aQuarterArea = 0.25 * a * a;
+            const pointY_aQuarterArea = originY - aQuarterArea * scaleY;
             paCtx.fillStyle = '#eab308'; // yellow-500
             paCtx.beginPath();
-            // Use pointX_a because the input value is 'a' for both points
-            paCtx.arc(pointX_a, pointY_aQuarter2, 5, 0, 2 * Math.PI);
+            paCtx.arc(pointX_a, pointY_aQuarterArea, 5, 0, 2 * Math.PI);
             paCtx.fill();
-
-            // Draw lines to axes for (a, (0.25a)^2)
             paCtx.beginPath();
             paCtx.strokeStyle = '#eab308'; // yellow-500
-            // Dashed lines already set
             paCtx.lineWidth = 1;
-            paCtx.moveTo(originX, pointY_aQuarter2); // Line to Y axis
-            paCtx.lineTo(pointX_a, pointY_aQuarter2);
-            // No need to draw line to X axis again, it's the same X position
+            paCtx.moveTo(originX, pointY_aQuarterArea);
+            paCtx.lineTo(pointX_a, pointY_aQuarterArea);
             paCtx.stroke();
-            paCtx.setLineDash([]); // Reset line dash
+            paCtx.setLineDash([]);
 
-
-            // --- Label Coordinates ---
-            // Labels for (a, a^2)
+            // Coordinate Labels
+            paCtx.font = '12px Inter';
             paCtx.fillStyle = '#ef4444'; // red-500
-            paCtx.font = '12px Inter';
             paCtx.textAlign = 'center';
-            paCtx.fillText(a.toFixed(1), pointX_a, originY + 15); // Label 'a' on X-axis (only once)
-            paCtx.textAlign = 'right';
-            const yLabelPos_a2 = Math.max(pointY_a2 + 4, paPadding + 15); // Avoid overlap
-            paCtx.fillText(aSquared.toFixed(1), originX - 8, yLabelPos_a2); // Label 'a²' on Y-axis
-
-             // Labels for (a, (0.25a)^2)
-            paCtx.fillStyle = '#ca8a04'; // yellow-600
-            paCtx.font = '12px Inter';
-            paCtx.textAlign = 'right';
-             // Position label for (0.25a)² carefully to avoid overlap with a² label
-            let yLabelPos_aQuarter2 = pointY_aQuarter2 + 4;
-            if (Math.abs(yLabelPos_aQuarter2 - yLabelPos_a2) < 14) { // If too close to a² label
-                yLabelPos_aQuarter2 = pointY_aQuarter2 - 10; // Move it down
+            let xLabelOffset = 0;
+            if (Math.abs(pointY_a2 - pointY_aQuarterArea) < 10 && a > 0.1) {
+                 xLabelOffset = -15;
             }
-            yLabelPos_aQuarter2 = Math.max(yLabelPos_aQuarter2, paPadding + 15); // Ensure within bounds
-            paCtx.fillText(aQuarterSquared.toFixed(1), originX - 8, yLabelPos_aQuarter2); // Label '(0.25a)²' on Y-axis
+            paCtx.fillText(a.toFixed(1), pointX_a + xLabelOffset, originY + 15);
+            paCtx.textAlign = 'right';
+            const yLabelPos_a2 = Math.max(pointY_a2 + 4, paPadding);
+            paCtx.fillText(aSquared.toFixed(1), originX - 8, yLabelPos_a2);
+
+            paCtx.fillStyle = '#ca8a04'; // yellow-600
+            paCtx.textAlign = 'right';
+            let yLabelPos_aQuarterArea = pointY_aQuarterArea + 4;
+            if (Math.abs(yLabelPos_aQuarterArea - yLabelPos_a2) < 14) {
+                yLabelPos_aQuarterArea = pointY_aQuarterArea - 10;
+            }
+            yLabelPos_aQuarterArea = Math.max(yLabelPos_aQuarterArea, paPadding);
+            paCtx.fillText(aQuarterArea.toFixed(1), originX - 8, yLabelPos_aQuarterArea);
         }
 
         // --- Update Function ---
         function updateVisualizations() {
             const a = parseFloat(slider.value);
-            const aQuarter = 0.25 * a;
+            const aHalf = 0.5 * a;
             const aSquared = a * a;
-            const aQuarterSquared = aQuarter * aQuarter;
+            const aQuarterSquaredArea = 0.25 * aSquared;
 
             // Update text displays
             aValueDisplay.textContent = a.toFixed(1);
-            aQuarterValueDisplay.textContent = aQuarter.toFixed(1);
+            aHalfValueDisplay.textContent = aHalf.toFixed(1);
             aSquaredValueDisplay.textContent = aSquared.toFixed(1);
-            aQuarterSquaredValueDisplay.textContent = aQuarterSquared.toFixed(1);
-
+            aQuarterSquaredAreaValueDisplay.textContent = aQuarterSquaredArea.toFixed(1);
 
             // Redraw canvases
             drawSquare(a);
             drawParabola(a);
+
+            // Re-typeset MathJax if dynamic content changes might contain LaTeX
+            // Not strictly necessary here as titles are static, but good practice if needed.
+            // if (window.MathJax && MathJax.typesetPromise) {
+            //    MathJax.typesetPromise();
+            // }
         }
 
         // --- Event Listener ---
         slider.addEventListener('input', updateVisualizations);
 
         // --- Initial Draw ---
-        squareCanvas.width = 300;
-        squareCanvas.height = 300;
-        parabolaCanvas.width = 300;
-        parabolaCanvas.height = 300;
-        updateVisualizations(); // Draw initially
+        // Canvas dimensions are set in HTML
+        // Initial draw happens after MathJax is ready (in MathJax config)
+        // We still call it here to ensure it runs if MathJax fails or is slow
+        // but the config ensures typesetting happens first.
+        updateVisualizations();
 
     </script>
 
 </body>
 </html>
+
 
