@@ -3,365 +3,415 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fixpunkte Visualisierung</title>
+    <title>Fixpunkte Labor Pro</title>
     
     <!-- Styling (Tailwind) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- React & ReactDOM (Zentraler, stabiler Server) -->
+    <!-- React & ReactDOM -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel (übersetzt den Code im Browser) -->
+    <!-- Babel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
-    <!-- Google Fonts -->
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Noto Sans', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Noto Sans', sans-serif; background-color: #f0f4f8; }
         .math-serif { font-family: 'Times New Roman', Times, serif; font-style: italic; }
+        .code-font { font-family: 'Fira Code', monospace; }
         
-        /* Slider Styling */
-        input[type=range] { -webkit-appearance: none; background: transparent; }
+        /* Custom Scrollbar for inputs */
         input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%;
-            background: #4f46e5; cursor: pointer; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: #4f46e5; cursor: pointer; margin-top: -6px;
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 2px;
         }
-        
-        /* Lade-Overlay */
         #loading { position: fixed; inset: 0; background: white; display: flex; justify-content: center; align-items: center; z-index: 100; font-weight: bold; color: #64748b; }
     </style>
 </head>
 <body>
 
-    <!-- Ladebildschirm, verschwindet wenn React startet -->
-    <div id="loading">Lade Visualisierung...</div>
-    
-    <!-- Hier wird die App reinmontiert -->
+    <div id="loading">Lade Mathe-Labor...</div>
     <div id="root"></div>
 
     <script type="text/babel">
-        // Falls React nicht geladen wurde, Fehler abfangen
-        if (!window.React || !window.ReactDOM) {
-            document.getElementById('loading').innerHTML = "<span style='color:red'>Fehler: Skripte konnten nicht geladen werden. Bitte Internetverbindung prüfen.</span>";
-        }
+        // Fallback Error Handling
+        if (!window.React) { document.getElementById('loading').innerHTML = "Fehler beim Laden der Bibliotheken."; }
 
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo, useCallback } = React;
 
-        // --- ICONS (Direkt als SVG Code, keine externe Bibliothek nötig) ---
+        // --- ICONS ---
         const IconPlay = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
         const IconPause = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>;
         const IconRefresh = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 21H3v-5"></path></svg>;
-        const IconGitFork = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"></path><path d="M12 12v3"></path></svg>;
+        const IconFunction = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17l6-10M9 7l6 10M4 4h16"/></svg>;
 
-        // --- TYPOGRAPHY (Mathe Schriftart) ---
-        const M = ({ children }) => <span className="math-serif text-lg mx-1">{children}</span>;
+        const M = ({ children }) => <span className="math-serif text-lg mx-0.5">{children}</span>;
 
-        // --- HAUPTKOMPONENTE ---
+        // --- SAFE MATH PARSER ---
+        // Erzeugt eine JavaScript-Funktion aus einem String
+        const createMathFunction = (formula) => {
+            try {
+                // Ersetze gängige Mathe-Ausdrücke für JS (z.B. sin -> Math.sin)
+                let jsFormula = formula
+                    .toLowerCase()
+                    .replace(/\^/g, '**') // Power operator
+                    .replace(/sin/g, 'Math.sin')
+                    .replace(/cos/g, 'Math.cos')
+                    .replace(/tan/g, 'Math.tan')
+                    .replace(/sqrt/g, 'Math.sqrt')
+                    .replace(/abs/g, 'Math.abs')
+                    .replace(/exp/g, 'Math.exp')
+                    .replace(/log/g, 'Math.log')
+                    .replace(/pi/g, 'Math.PI')
+                    .replace(/e/g, 'Math.E');
+
+                // Erstelle Funktion: f(x) = ...
+                return new Function('x', `return ${jsFormula};`);
+            } catch (e) {
+                return null;
+            }
+        };
+
         const App = () => {
-            const [slope, setSlope] = useState(0.5); 
+            // State
+            const [mode, setMode] = useState('linear'); // 'linear' or 'custom'
+            const [formulaInput, setFormulaInput] = useState('cos(x)');
+            const [slope, setSlope] = useState(0.5); // Für Linear-Modus
             const [startX, setStartX] = useState(0.5);
             const [isPlaying, setIsPlaying] = useState(false);
             const [currentStep, setCurrentStep] = useState(0);
+            
+            // Konfiguration
+            const iterations = 50;
+            const size = 320; 
+            const rangeMin = -1;
+            const rangeMax = 4;
+            const range = rangeMax - rangeMin;
 
-            // Simulationseinstellungen
-            const iterations = 40;
-            const fixX = 2;
-            const fixY = 2;
-            const range = 4;
-            const size = 300; 
-
-            // Animation Timer
+            // Timer
             useEffect(() => {
                 let interval;
                 if (isPlaying) {
                     interval = setInterval(() => {
                         setCurrentStep(prev => {
-                            if (prev >= iterations) {
-                                setIsPlaying(false);
-                                return 0; 
-                            }
+                            if (prev >= iterations) { setIsPlaying(false); return 0; }
                             return prev + 1;
                         });
-                    }, 150);
+                    }, 100);
                 }
                 return () => clearInterval(interval);
             }, [isPlaying]);
 
-            // Mathe-Logik
-            const absSlope = Math.abs(slope);
-            const isAttracting = absSlope < 1;
-            const isRepelling = absSlope > 1;
-            const isMonotone = slope >= 0;
-            const isOscillating = slope < 0;
-
-            // Pfadberechnung
-            const generatePath = (m, x0) => {
-                const path = [];
-                let x = x0;
-                path.push({ x: x, y: 0 }); 
-                for (let i = 0; i < iterations; i++) {
-                    const nextY = m * (x - fixX) + fixY;
-                    if (Math.abs(nextY) > 50 || Math.abs(x) > 50) break; 
-                    path.push({ x: x, y: nextY }); 
-                    path.push({ x: nextY, y: nextY }); 
-                    x = nextY;
+            // --- MATH CORE ---
+            
+            // Die eigentliche Funktion phi(x)
+            const phi = useCallback((x) => {
+                if (mode === 'linear') {
+                    // Linear: m(x - 2) + 2 (Fixpunkt bei 2,2)
+                    return slope * (x - 2) + 2;
+                } else {
+                    // Custom
+                    const func = createMathFunction(formulaInput);
+                    if (!func) return x; // Fallback
+                    try { return func(x); } catch(e) { return x; }
                 }
-                return path;
+            }, [mode, slope, formulaInput]);
+
+            // Numerische Ableitung berechnen: f'(x) ≈ (f(x+h) - f(x-h)) / 2h
+            const calculateDerivative = (x) => {
+                const h = 0.0001;
+                const y1 = phi(x - h);
+                const y2 = phi(x + h);
+                return (y2 - y1) / (2 * h);
             };
 
-            // SVG Umrechnung
-            const toSvg = (val) => (val / range) * size;
-            const toSvgY = (val) => size - (val / range) * size;
+            // Pfad berechnen
+            const pathData = useMemo(() => {
+                const path = [];
+                let x = startX;
+                let divergent = false;
 
-            // Kleiner Plot für den Baum
-            const MiniPlot = ({ m, active, label }) => {
-                const localPath = generatePath(m, 0.5); 
-                const strokeColor = active ? (Math.abs(m) < 1 ? '#10b981' : '#ef4444') : '#cbd5e1'; 
-                const funcColor = active ? (m >= 0 ? '#3b82f6' : '#8b5cf6') : '#94a3b8';
+                path.push({ x: x, y: 0 }); // Start
+                
+                for (let i = 0; i < iterations; i++) {
+                    let nextY = phi(x);
+                    
+                    // Schutz vor Unendlich
+                    if (!isFinite(nextY) || Math.abs(nextY) > 50) {
+                        divergent = true;
+                        break;
+                    }
 
-                return (
-                    <div className={`transition-all duration-300 bg-white rounded-lg border-2 p-2 flex flex-col items-center ${active ? 'border-slate-800 shadow-md scale-105 ring-2 ring-indigo-50 z-10' : 'border-slate-100 opacity-50 grayscale scale-95'}`}>
-                        <div className="relative w-24 h-24 mb-2 pointer-events-none">
-                           <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full overflow-hidden rounded bg-slate-50">
-                             <line x1="0" y1={size} x2={size} y2={size} stroke="#333" strokeWidth="4" />
-                             <line x1="0" y1={0} x2={0} y2={size} stroke="#333" strokeWidth="4" />
-                             <line x1="0" y1={size} x2={size} y2={0} stroke="#cbd5e1" strokeWidth="4" strokeDasharray="8" />
-                             <line 
-                                x1={0} y1={toSvgY(m * (0 - fixX) + fixY)} 
-                                x2={size} y2={toSvgY(m * (range - fixX) + fixY)} 
-                                stroke={funcColor} strokeWidth="6" 
-                             />
-                             {active && localPath.slice(0, 10).map((p, i, arr) => {
-                               if(i===0) return null;
-                               return <line key={i} x1={toSvg(arr[i-1].x)} y1={toSvgY(arr[i-1].y)} x2={toSvg(p.x)} y2={toSvgY(p.y)} stroke={strokeColor} strokeWidth="4" />
-                             })}
-                           </svg>
-                        </div>
-                        <div className="text-center text-xs">
-                            {label}
-                        </div>
-                    </div>
-                );
+                    path.push({ x: x, y: nextY }); // Vertikal
+                    path.push({ x: nextY, y: nextY }); // Horizontal
+                    x = nextY;
+                }
+                return { path, lastX: x, divergent };
+            }, [phi, startX]);
+
+            // --- CLASSIFICATION LOGIC ---
+            // Für den Baum müssen wir wissen: Wo sind wir gerade? 
+            // Bei nicht-linearen Funktionen ändert sich die Ableitung.
+            // Wir nehmen die Ableitung am letzten Punkt der Iteration (als Näherung für den Fixpunkt, falls konvergiert)
+            // oder am Startpunkt, wenn es noch läuft.
+            
+            const currentEvalX = pathData.path.length > 2 
+                ? pathData.path[Math.min(pathData.path.length - 1, currentStep * 2)].x 
+                : startX;
+                
+            const effectiveSlope = calculateDerivative(currentEvalX);
+            
+            const absM = Math.abs(effectiveSlope);
+            const isAttracting = absM < 1;
+            const isRepelling = absM >= 1; // >= 1 auch für Chaos
+            const isMonotone = effectiveSlope >= 0;
+            const isOscillating = effectiveSlope < 0;
+
+            // Helpers für SVG
+            const toSvgX = (val) => ((val - rangeMin) / range) * size;
+            const toSvgY = (val) => size - ((val - rangeMin) / range) * size;
+
+            // Presets
+            const loadPreset = (name) => {
+                setMode('custom');
+                setIsPlaying(false);
+                setCurrentStep(0);
+                if (name === 'cos') { setFormulaInput('cos(x)'); setStartX(0.1); }
+                if (name === 'sqrt') { setFormulaInput('sqrt(x+1)'); setStartX(0.5); }
+                if (name === 'logistic') { setFormulaInput('2.8 * x * (1-x)'); setStartX(0.1); } // Chaos Rand
+                if (name === 'chaos') { setFormulaInput('3.9 * x * (1-x)'); setStartX(0.3); } // Echtes Chaos
+                if (name === 'newton') { setFormulaInput('x - (x*x - 2)/(2*x)'); setStartX(4); } // Newton Wurzel 2
             };
 
             return (
-                <div className="min-h-screen pb-20 selection:bg-indigo-100">
-                  
-                  {/* --- Header & Controls --- */}
-                  <div className="sticky top-0 z-50 bg-white/95 backdrop-blur shadow-sm px-4 py-3 border-b border-slate-200">
-                    <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                      
-                      <div className="flex flex-col w-full md:w-1/2">
-                         <div className="flex justify-between text-sm font-bold text-slate-600 mb-1 items-center">
-                            <span>Steigung <M>φ'(x)</M></span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${isAttracting ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              m = {slope.toFixed(2)}
-                            </span>
-                         </div>
-                         <input 
-                            type="range" min="-2.4" max="2.4" step="0.1" 
-                            value={slope}
-                            onChange={(e) => { setSlope(parseFloat(e.target.value)); setIsPlaying(false); setCurrentStep(0); }}
-                         />
-                         <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
-                           <span>-2.4</span>
-                           <span>0</span>
-                           <span>2.4</span>
-                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                         <button 
-                           onClick={() => setIsPlaying(!isPlaying)}
-                           className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full shadow-lg transition-transform active:scale-95 flex items-center justify-center w-10 h-10"
-                           title="Animation Start/Stop"
-                         >
-                           {isPlaying ? <IconPause /> : <IconPlay />}
-                         </button>
-                         <button 
-                           onClick={() => {setCurrentStep(0); setIsPlaying(false);}}
-                           className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 p-2 rounded-full shadow-sm transition-transform active:scale-95 w-10 h-10 flex items-center justify-center"
-                           title="Zurücksetzen"
-                         >
-                           <IconRefresh />
-                         </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <main className="max-w-5xl mx-auto p-4 md:p-8">
+                <div className="min-h-screen pb-20 max-w-6xl mx-auto px-4">
                     
-                    <div className="text-center mb-10">
-                        <h1 className="text-3xl font-bold text-slate-900 mb-2">Fixpunkte Visualisierung</h1>
-                        <p className="text-slate-500 text-sm">Der Weg zur Konvergenz</p>
-                    </div>
+                    {/* --- HEADER --- */}
+                    <header className="py-6 border-b border-slate-200 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
+                                <IconFunction /> Fixpunkt Labor <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded uppercase tracking-wider">Pro</span>
+                            </h1>
+                            <p className="text-slate-500 text-sm mt-1">Experimentiere mit linearen und nicht-linearen Funktionen.</p>
+                        </div>
+                        <div className="flex bg-white p-1 rounded-lg border border-slate-300 shadow-sm">
+                            <button 
+                                onClick={() => setMode('linear')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-bold transition-colors ${mode === 'linear' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                Linear (Lernmodus)
+                            </button>
+                            <button 
+                                onClick={() => setMode('custom')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-bold transition-colors ${mode === 'custom' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                Profi (f(x) Eingabe)
+                            </button>
+                        </div>
+                    </header>
 
-                    {/* --- DER BAUM (STRUKTUR) --- */}
-                    <div className="flex flex-col items-center relative mb-16">
-                       
-                       <!-- Wurzel -->
-                       <div className="z-10 bg-slate-800 text-white px-6 py-2 rounded-lg shadow-xl text-lg font-serif italic mb-4">
-                         Fixpunkte x*
-                       </div>
-
-                       <!-- Verbinder zur Ebene 1 -->
-                       <div className="w-full max-w-2xl h-8 flex justify-center items-end px-12 relative -mt-4 mb-2 -z-10">
-                          <div className={`w-1/2 h-full border-t-2 border-r-2 rounded-tr-2xl transition-colors duration-300 ${isAttracting ? 'border-slate-800' : 'border-slate-200 border-dashed'}`} style={{marginRight: '2px'}}></div>
-                          <div className={`w-1/2 h-full border-t-2 border-l-2 rounded-tl-2xl transition-colors duration-300 ${isRepelling ? 'border-slate-800' : 'border-slate-200 border-dashed'}`} style={{marginLeft: '2px'}}></div>
-                       </div>
-
-                       <!-- Ebene 1: Anziehend / Abstoßend -->
-                       <div className="grid grid-cols-2 gap-4 md:gap-16 w-full max-w-4xl">
-                          
-                          <!-- Linker Ast -->
-                          <div className={`flex flex-col items-center transition-opacity duration-300 ${isAttracting ? 'opacity-100' : 'opacity-40 grayscale'}`}>
-                             <div className="bg-white border-2 border-slate-800 px-4 py-2 rounded-lg text-center shadow-sm w-full max-w-[200px] mb-2">
-                                <h3 className="font-bold text-slate-800">anziehend</h3>
-                                <div className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded inline-block border border-green-200 mt-1">
-                                  <M>|φ'(x)| &lt; 1</M>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        
+                        {/* --- LEFT: CONTROLS & TREE --- */}
+                        <div className="lg:col-span-5 flex flex-col gap-6">
+                            
+                            {/* Input Panel */}
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="font-bold text-slate-700">Funktionseingabe</h2>
+                                    <div className="flex gap-2">
+                                         <button onClick={() => setIsPlaying(!isPlaying)} className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg">{isPlaying ? <IconPause/> : <IconPlay/>}</button>
+                                         <button onClick={() => {setCurrentStep(0); setIsPlaying(false);}} className="border p-2 rounded-lg hover:bg-slate-50"><IconRefresh/></button>
+                                    </div>
                                 </div>
-                             </div>
-                             
-                             <!-- Verbinder Ebene 2 -->
-                             <div className="h-6 w-32 flex justify-between relative">
-                                 <div className={`absolute left-0 top-0 w-1/2 h-full border-r-2 border-slate-300 ${isAttracting && isMonotone ? '!border-slate-800' : ''}`} style={{transform: 'skewX(20deg)'}}></div>
-                                 <div className={`absolute right-0 top-0 w-1/2 h-full border-l-2 border-slate-300 ${isAttracting && isOscillating ? '!border-slate-800' : ''}`} style={{transform: 'skewX(-20deg)'}}></div>
-                             </div>
 
-                             <div className="grid grid-cols-2 gap-2 mt-1 w-full">
-                                <MiniPlot m={0.5} active={isAttracting && isMonotone} label={<div><b>monoton</b><br/><span className="text-[10px]"><M>0 ≤ m &lt; 1</M></span></div>} />
-                                <MiniPlot m={-0.6} active={isAttracting && isOscillating} label={<div><b>oszillierend</b><br/><span className="text-[10px]"><M>-1 &lt; m ≤ 0</M></span></div>} />
-                             </div>
-                          </div>
+                                {mode === 'linear' ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Steigung m</label>
+                                            <div className="flex items-center gap-3">
+                                                <input type="range" min="-2.5" max="2.5" step="0.1" value={slope} onChange={e => {setSlope(parseFloat(e.target.value)); setCurrentStep(0); setIsPlaying(false);}} className="flex-1" />
+                                                <span className="font-mono bg-slate-100 px-2 py-1 rounded">{slope.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-blue-50 text-blue-800 text-sm rounded border border-blue-100">
+                                            <M>φ(x) = {slope} \cdot (x - 2) + 2</M>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Funktion φ(x)</label>
+                                            <input 
+                                                type="text" 
+                                                value={formulaInput} 
+                                                onChange={(e) => {setFormulaInput(e.target.value); setCurrentStep(0); setIsPlaying(false);}}
+                                                className="w-full p-2 border border-slate-300 rounded font-mono text-indigo-700 focus:ring-2 focus:ring-indigo-200 outline-none"
+                                                placeholder="z.B. cos(x)" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Beispiele (Presets)</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                <button onClick={() => loadPreset('cos')} className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border">Cosinus</button>
+                                                <button onClick={() => loadPreset('sqrt')} className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border">Wurzel</button>
+                                                <button onClick={() => loadPreset('newton')} className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border">Newton √2</button>
+                                                <button onClick={() => loadPreset('chaos')} className="text-xs px-2 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded border border-purple-200">Chaos</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
-                          <!-- Rechter Ast -->
-                          <div className={`flex flex-col items-center transition-opacity duration-300 ${isRepelling ? 'opacity-100' : 'opacity-40 grayscale'}`}>
-                             <div className="bg-white border-2 border-slate-800 px-4 py-2 rounded-lg text-center shadow-sm w-full max-w-[200px] mb-2">
-                                <h3 className="font-bold text-slate-800">abstoßend</h3>
-                                <div className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded inline-block border border-red-200 mt-1">
-                                  <M>|φ'(x)| &gt; 1</M>
+                                <div className="mt-4 pt-4 border-t border-slate-100">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Startwert x₀: <span className="text-black font-mono">{startX.toFixed(2)}</span></label>
+                                    <input type="range" min={rangeMin} max={rangeMax} step="0.05" value={startX} onChange={e => {setStartX(parseFloat(e.target.value)); setCurrentStep(0); setIsPlaying(false);}} className="w-full mt-1" />
                                 </div>
-                             </div>
+                            </div>
 
-                             <!-- Verbinder Ebene 2 -->
-                             <div className="h-6 w-32 flex justify-between relative">
-                                 <div className={`absolute left-0 top-0 w-1/2 h-full border-r-2 border-slate-300 ${isRepelling && isMonotone ? '!border-slate-800' : ''}`} style={{transform: 'skewX(20deg)'}}></div>
-                                 <div className={`absolute right-0 top-0 w-1/2 h-full border-l-2 border-slate-300 ${isRepelling && isOscillating ? '!border-slate-800' : ''}`} style={{transform: 'skewX(-20deg)'}}></div>
-                             </div>
+                            {/* TREE VISUALIZATION */}
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative overflow-hidden">
+                                <div className="text-center font-bold text-slate-400 text-xs uppercase mb-4 tracking-widest">Klassifikations-Baum</div>
+                                
+                                <div className="absolute top-2 right-2 text-[10px] text-slate-400 text-right bg-slate-50 p-1 rounded">
+                                    Lokale Ableitung<br/>
+                                    <span className="font-mono text-base font-bold text-slate-700">m ≈ {effectiveSlope.toFixed(2)}</span>
+                                </div>
 
-                             <div className="grid grid-cols-2 gap-2 mt-1 w-full">
-                                <MiniPlot m={1.5} active={isRepelling && isMonotone} label={<div><b>monoton</b><br/><span className="text-[10px]"><M>m &gt; 1</M></span></div>} />
-                                <MiniPlot m={-1.5} active={isRepelling && isOscillating} label={<div><b>oszillierend</b><br/><span className="text-[10px]"><M>m &lt; -1</M></span></div>} />
-                             </div>
-                          </div>
-                       </div>
-                    </div>
+                                <div className="flex flex-col items-center gap-6">
+                                    <div className="bg-slate-800 text-white px-4 py-1.5 rounded shadow text-sm font-bold">Fixpunkt x*</div>
+                                    
+                                    <div className="grid grid-cols-2 gap-8 w-full">
+                                        <div className={`transition-all duration-500 border rounded-lg p-3 text-center ${isAttracting ? 'border-green-500 bg-green-50 shadow-md scale-105' : 'border-slate-100 opacity-40'}`}>
+                                            <div className="font-bold text-green-800 text-sm">Anziehend</div>
+                                            <div className="text-xs text-green-600 font-mono">|m| &lt; 1</div>
+                                            
+                                            <div className="flex gap-2 mt-3 justify-center">
+                                                <div className={`text-[10px] border px-1 rounded ${isAttracting && isMonotone ? 'bg-green-200 border-green-400 font-bold' : 'border-transparent'}`}>Monoton</div>
+                                                <div className={`text-[10px] border px-1 rounded ${isAttracting && isOscillating ? 'bg-green-200 border-green-400 font-bold' : 'border-transparent'}`}>Osz.</div>
+                                            </div>
+                                        </div>
 
-                    {/* --- GROSSE VISUALISIERUNG --- */}
-                    <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-4 md:p-6 mt-8 max-w-4xl mx-auto">
-                        <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-2">
-                            <IconGitFork />
-                            <h2 className="font-bold text-slate-800">Detail-Simulation</h2>
+                                        <div className={`transition-all duration-500 border rounded-lg p-3 text-center ${isRepelling ? 'border-red-500 bg-red-50 shadow-md scale-105' : 'border-slate-100 opacity-40'}`}>
+                                            <div className="font-bold text-red-800 text-sm">Abstoßend</div>
+                                            <div className="text-xs text-red-600 font-mono">|m| &gt; 1</div>
+
+                                            <div className="flex gap-2 mt-3 justify-center">
+                                                <div className={`text-[10px] border px-1 rounded ${isRepelling && isMonotone ? 'bg-red-200 border-red-400 font-bold' : 'border-transparent'}`}>Monoton</div>
+                                                <div className={`text-[10px] border px-1 rounded ${isRepelling && isOscillating ? 'bg-red-200 border-red-400 font-bold' : 'border-transparent'}`}>Osz.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-6">
-                            <div className="flex-1 aspect-square max-h-[400px] relative bg-slate-50 rounded border border-slate-200 overflow-hidden cursor-crosshair">
-                                 <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full">
+                        {/* --- RIGHT: GRAPH --- */}
+                        <div className="lg:col-span-7">
+                            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden h-full min-h-[500px] relative">
+                                <div className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur px-3 py-1 rounded border border-slate-200 text-xs font-mono text-slate-500">
+                                    Plot: x = [{rangeMin}, {rangeMax}]
+                                </div>
+
+                                <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full cursor-crosshair">
                                     <defs>
-                                        <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                                            <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#e2e8f0" strokeWidth="1"/>
+                                        <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f1f5f9" strokeWidth="1"/>
                                         </pattern>
                                     </defs>
-                                    <rect width="100%" height="100%" fill="url(#grid)" />
+                                    <rect width="100%" height="100%" fill="url(#smallGrid)" />
                                     
-                                    {/* Achsen */}
-                                    <line x1="0" y1={size} x2={size} y2={size} stroke="#64748b" strokeWidth="2" />
-                                    <line x1="0" y1={0} x2={0} y2={size} stroke="#64748b" strokeWidth="2" />
-                                    
-                                    {/* y=x */}
-                                    <line x1="0" y1={size} x2={size} y2={0} stroke="#cbd5e1" strokeWidth="2" strokeDasharray="6,4" />
-                                    
-                                    {/* Funktion */}
-                                    <line 
-                                        x1={0} 
-                                        y1={toSvgY(slope * (0 - fixX) + fixY)} 
-                                        x2={size} 
-                                        y2={toSvgY(slope * (range - fixX) + fixY)} 
-                                        stroke={isAttracting ? '#10b981' : '#ef4444'} 
-                                        strokeWidth="3" 
+                                    {/* Achsen (dynamisch je nach range) */}
+                                    <line x1="0" y1={toSvgY(0)} x2={size} y2={toSvgY(0)} stroke="#94a3b8" strokeWidth="2" />
+                                    <line x1={toSvgX(0)} y1={size} x2={toSvgX(0)} y2={0} stroke="#94a3b8" strokeWidth="2" />
+
+                                    {/* Winkelhalbierende y=x */}
+                                    <line x1="0" y1={size} x2={size} y2={0} stroke="#cbd5e1" strokeWidth="2" strokeDasharray="5,5" />
+                                    <text x={size-40} y={20} className="fill-slate-400 text-xs font-serif italic">y = x</text>
+
+                                    {/* Funktionsplot φ(x) */}
+                                    {/* Wir zeichnen viele kleine Liniensegmente für die Kurve */}
+                                    <path 
+                                        d={(() => {
+                                            let d = "";
+                                            const steps = 200;
+                                            for(let i=0; i<=steps; i++) {
+                                                const xVal = rangeMin + (i/steps)*range;
+                                                const yVal = phi(xVal);
+                                                // Clipping für Anzeige
+                                                if (yVal > rangeMax + 5 || yVal < rangeMin - 5) continue;
+                                                
+                                                const sx = toSvgX(xVal);
+                                                const sy = toSvgY(yVal);
+                                                d += (i===0 ? "M" : "L") + `${sx},${sy} `;
+                                            }
+                                            return d;
+                                        })()}
+                                        fill="none"
+                                        stroke={isAttracting ? '#10b981' : '#ef4444'}
+                                        strokeWidth="3"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="transition-colors duration-500"
                                     />
 
-                                    {/* Fixpunkt */}
-                                    <circle cx={toSvg(fixX)} cy={toSvgY(fixY)} r="4" fill="#1e293b" />
-
-                                    {/* Cobweb Pfad */}
-                                    {generatePath(slope, startX).slice(0, currentStep * 2 + 2).map((point, i, arr) => {
+                                    {/* Cobweb Path */}
+                                    {pathData.path.slice(0, currentStep * 2 + 2).map((pt, i, arr) => {
                                         if (i === 0) return null;
                                         const prev = arr[i-1];
                                         return (
                                             <line 
-                                            key={i}
-                                            x1={toSvg(prev.x)} 
-                                            y1={toSvgY(prev.y)} 
-                                            x2={toSvg(point.x)} 
-                                            y2={toSvgY(point.y)} 
-                                            stroke="#4f46e5" 
-                                            strokeWidth="2"
-                                            opacity="0.8"
+                                                key={i}
+                                                x1={toSvgX(prev.x)} y1={toSvgY(prev.y)}
+                                                x2={toSvgX(pt.x)} y2={toSvgY(pt.y)}
+                                                stroke="#4f46e5" strokeWidth="1.5" opacity="0.7"
                                             />
-                                        );
+                                        )
                                     })}
-                                    
-                                    {/* Aktueller Punkt */}
-                                    {currentStep > 0 && generatePath(slope, startX)[Math.min(generatePath(slope, startX).length-1, currentStep*2)] && (
-                                       <circle 
-                                         cx={toSvg(generatePath(slope, startX)[Math.min(generatePath(slope, startX).length-1, currentStep*2)].x)}
-                                         cy={toSvgY(generatePath(slope, startX)[Math.min(generatePath(slope, startX).length-1, currentStep*2)].y)}
-                                         r="5" fill="#4f46e5"
-                                       />
+
+                                    {/* Current Point */}
+                                    {currentStep > 0 && pathData.path[Math.min(pathData.path.length-1, currentStep*2)] && (
+                                        <circle 
+                                            cx={toSvgX(pathData.path[Math.min(pathData.path.length-1, currentStep*2)].x)}
+                                            cy={toSvgY(pathData.path[Math.min(pathData.path.length-1, currentStep*2)].y)}
+                                            r="4" fill="#4f46e5" className="animate-pulse"
+                                        />
                                     )}
-                                 </svg>
+
+                                </svg>
                             </div>
                             
-                            <div className="w-full md:w-64 flex flex-col gap-4">
-                                 <div className="bg-slate-50 p-4 rounded border border-slate-200">
-                                    <label className="block font-bold text-xs text-slate-500 uppercase mb-2">Startwert x₀</label>
-                                    <input 
-                                        type="range" min="0" max="4" step="0.1"
-                                        value={startX}
-                                        onChange={(e) => { setStartX(parseFloat(e.target.value)); setCurrentStep(0); setIsPlaying(false); }}
-                                        className="w-full"
-                                    />
-                                    <div className="text-right text-sm font-mono mt-1 text-slate-700">{startX.toFixed(1)}</div>
-                                 </div>
-                                 
-                                 <div className={`p-4 rounded border text-sm ${isAttracting ? 'bg-green-50 border-green-200 text-green-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
-                                    <h4 className="font-bold mb-1 text-xs uppercase opacity-75">Erklärung</h4>
-                                    {isAttracting 
-                                      ? "Die Folge nähert sich dem Schnittpunkt (Konvergenz)." 
-                                      : "Die Folge entfernt sich vom Schnittpunkt (Divergenz)."}
-                                 </div>
+                            {/* Erklärungstext unten */}
+                            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-900">
+                                <strong className="block mb-1 font-bold">Interpretation:</strong>
+                                {mode === 'linear' 
+                                  ? "Bei linearen Funktionen ist die Steigung überall gleich. Der Fixpunkt ist stabil, wenn die Steigung im Betrag < 1 ist." 
+                                  : <span>Bei nicht-linearen Funktionen (wie <span className="font-mono">{formulaInput}</span>) entscheidet die Steigung <em>lokal am Schnittpunkt</em>. Ist sie dort steil (>1 oder &lt;-1), wird der Punkt abgestoßen – selbst wenn die Kurve woanders flach ist.</span>
+                                }
                             </div>
                         </div>
-                    </div>
 
-                  </main>
+                    </div>
+                    
+                    <footer className="text-center text-slate-400 text-xs py-8 mt-8 border-t border-slate-200">
+                        Pro-Version für Mathematik & Informatik Didaktik
+                    </footer>
                 </div>
             );
         };
 
-        // App starten
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-        
-        // Ladebildschirm entfernen
         document.getElementById('loading').style.display = 'none';
     </script>
 </body>
 </html>
 
+ 
