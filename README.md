@@ -12,7 +12,9 @@ Die Projekte haben die folgenden externen Bibliotheken, die meist über CDN eing
 * [React](https://react.dev/) & [ReactDOM](https://react.dev/) (MIT Lizenz) - Core-Framework für die Interaktivität.
 * [Babel Standalone](https://babeljs.io/) (MIT Lizenz) - Für die Kompilierung von JSX im Browser.
 * [Google Fonts](https://fonts.google.com/) (SIL Open Font License) - Noto Sans & Fira Code.
-
+### Zusätzliche Bibliotheken (Newton Visualizer)
+* [Plotly.js](https://plotly.com/javascript/) ([MIT Lizenz](https://github.com/plotly/plotly.js/blob/master/LICENSE)) - Für die interaktive Darstellung der Funktionsgraphen und Tangenten.
+* [Math.js](https://mathjs.org/) ([Apache License 2.0](https://github.com/josdejong/mathjs/blob/develop/LICENSE)) - Für das Parsen der Funktionseingaben und die automatische symbolische Ableitung im Browser.
 
 
 ## Lizenz
