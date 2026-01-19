@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -55,11 +55,11 @@
     <!-- Main Content -->
     <main class="flex-grow max-w-6xl mx-auto w-full p-4 flex flex-col md:flex-row gap-6">
         
-        <!-- Controls & Info Panel (Links) -->
-        <div class="w-full md:w-1/3 bg-white p-6 rounded-xl shadow-md space-y-6 border border-gray-100 h-fit">
+        <!-- Linke Spalte: Controls & Info -->
+        <div class="w-full md:w-1/3 space-y-6">
             
             <!-- Input Section -->
-            <div class="space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 space-y-4">
                 <h2 class="text-lg font-semibold border-b pb-2 text-indigo-600 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     Konfiguration
@@ -90,7 +90,7 @@
             </div>
 
             <!-- Status & Results -->
-            <div class="space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 space-y-4">
                 <h2 class="text-lg font-semibold border-b pb-2 text-indigo-600 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                     Verlauf
@@ -124,14 +124,40 @@
             </div>
         </div>
 
-        <!-- Graph Panel (Rechts) -->
-        <div class="w-full md:w-2/3 bg-white p-1 rounded-xl shadow-md flex flex-col border border-gray-100 overflow-hidden relative">
-            <div id="plotDiv" class="w-full flex-grow min-h-[500px] md:min-h-[600px]"></div>
+        <!-- Rechte Spalte: Graph & Theorie -->
+        <div class="w-full md:w-2/3 flex flex-col gap-6">
             
-            <!-- Overlay Info -->
-            <div class="absolute bottom-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-500 pointer-events-none border border-gray-200">
-                Interaktiv: Scrollen zum Zoomen
+            <!-- Graph Panel -->
+            <div class="bg-white p-1 rounded-xl shadow-md flex flex-col border border-gray-100 overflow-hidden relative min-h-[500px] md:min-h-[600px]">
+                <div id="plotDiv" class="w-full flex-grow"></div>
+                <!-- Overlay Info -->
+                <div class="absolute bottom-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-500 pointer-events-none border border-gray-200">
+                    Interaktiv: Scrollen zum Zoomen
+                </div>
             </div>
+
+            <!-- NEU: Theorie-Spickzettel -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 shadow-sm text-amber-900">
+                <h3 class="font-bold flex items-center gap-2 text-amber-700 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.394 2.08a1 1 0 00-1.788 0l-7 14a1 1 0 001.17 1.408l7-14zM12 9a1 1 0 11-2 0 1 1 0 012 0zm-1 2a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                    </svg>
+                    Spickzettel: Wie wähle ich den Startwert $x_0$? (Aufgabe 1)
+                </h3>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="font-semibold mb-1">1. Die Goldene Regel:</p>
+                        <p>Wähle $x_0$ dort, wo Funktionswert und Krümmung das gleiche Vorzeichen haben. Die Funktion muss "mitarbeiten".</p>
+                        <code class="block mt-1 p-1 bg-amber-100 rounded text-xs">f(x_0) · f''(x_0) > 0</code>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-1">2. Die Waagerechte Gefahr:</p>
+                        <p>Meide Startwerte in der Nähe von Extremstellen (Hoch-/Tiefpunkte), da dort die Ableitung $f'(x) \approx 0$ ist.</p>
+                        <p class="text-xs mt-1 italic opacity-80">Folge: Die Tangente wird waagerecht und schießt ins Unendliche.</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
     </main>
@@ -153,17 +179,33 @@
         let history = [];
         let maxSteps = 20;
 
-        // Initialize Plotly
+        // Initialize Plotly with hidden axes titles (we use annotations instead)
         const layout = {
             title: 'Funktionsgraph & Tangenten',
             font: { family: 'Segoe UI, sans-serif' },
-            xaxis: { title: 'x', zeroline: true, gridcolor: '#f3f4f6' },
-            yaxis: { title: 'f(x)', zeroline: true, scaleanchor: "x", scaleratio: 1, gridcolor: '#f3f4f6' },
+            xaxis: { 
+                zeroline: true, 
+                gridcolor: '#f3f4f6', 
+                zerolinecolor: '#333',
+                zerolinewidth: 2,
+                showgrid: true,
+                showline: false, // Hide frame lines
+            },
+            yaxis: { 
+                zeroline: true, 
+                scaleanchor: "x", 
+                scaleratio: 1, 
+                gridcolor: '#f3f4f6',
+                zerolinecolor: '#333',
+                zerolinewidth: 2,
+                showgrid: true,
+                showline: false,
+            },
             showlegend: true,
             hovermode: 'closest',
-            shapes: [], // For tangent lines
-            annotations: [],
-            margin: {l: 50, r: 20, t: 50, b: 50}
+            shapes: [], 
+            annotations: [], // Will be filled dynamically
+            margin: {l: 30, r: 30, t: 50, b: 30}
         };
         
         const config = {responsive: true, displayModeBar: true, displaylogo: false};
@@ -234,6 +276,7 @@
             const xMin = centerX - range;
             const xMax = centerX + range;
             
+            // Collect points
             for (let i = 0; i <= steps; i++) {
                 const x = xMin + (i/steps) * (xMax - xMin);
                 try {
@@ -246,6 +289,17 @@
                 } catch(e) {}
             }
 
+            // Find effective Y range for label placement
+            let yMaxPlot = 0;
+            if (ys.length > 0) {
+                yMaxPlot = Math.max(...ys.map(Math.abs));
+                if (yMaxPlot === 0) yMaxPlot = 5; 
+                // Add some padding
+                yMaxPlot = yMaxPlot * 1.1; 
+            } else {
+                yMaxPlot = 5;
+            }
+
             // Base Trace: The Function
             const trace1 = {
                 x: xs, y: ys,
@@ -254,16 +308,38 @@
                 line: {color: '#4f46e5', width: 3}
             };
 
-            // Trace 2: Zero Line
-            const traceZero = {
-                x: [xMin, xMax], y: [0, 0],
-                mode: 'lines',
-                name: 'x-Achse',
-                line: {color: '#374151', width: 1.5},
-                showlegend: false
+            // Custom Axis Labels via Annotations
+            // This places 'x' at the right end of x-axis and 'f(x)' at top of y-axis
+            const axisLabels = [
+                {
+                    x: xMax,
+                    y: 0,
+                    xref: 'x', yref: 'y',
+                    text: '<b>x</b>',
+                    showarrow: false,
+                    xanchor: 'right',
+                    yanchor: 'bottom',
+                    font: {size: 16, family: 'serif', color: '#333'}
+                },
+                {
+                    x: 0,
+                    y: yMaxPlot, // Approximate top of visible area
+                    xref: 'x', yref: 'y',
+                    text: '<b>f(x)</b>',
+                    showarrow: false,
+                    xanchor: 'left',
+                    yanchor: 'top',
+                    font: {size: 16, family: 'serif', color: '#333'}
+                }
+            ];
+
+            const currentLayout = {
+                annotations: axisLabels,
+                xaxis: { range: [xMin, xMax] }, // Explicit range ensures labels are at edges
+                yaxis: { range: [-yMaxPlot, yMaxPlot] }
             };
 
-            Plotly.react('plotDiv', [trace1, traceZero], layout, config);
+            Plotly.react('plotDiv', [trace1], Object.assign({}, layout, currentLayout), config);
         }
 
         function nextStep() {
@@ -283,8 +359,6 @@
             currentStep++;
 
             // Visualisierung: Tangente
-            // Tangente geht von (x_curr, fx) nach (x_next, 0)
-            
             const shapes = document.getElementById('plotDiv').layout.shapes || [];
             
             // 1. Line: Vertical drop to curve (visual helper)
