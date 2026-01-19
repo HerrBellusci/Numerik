@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Metadaten für Social Media & Suchmaschinen (Wichtig für GitHub Pages) -->
+    <meta name="description" content="Interaktive Visualisierung des Newton-Verfahrens. Erstellt für das Numerik-Tutorium (Blatt 11).">
+    <meta name="author" content="Dein Mathe-Tutor">
+    
+    <title>Mathe-Tutor: Newton-Verfahren Visualizer</title>
+
+    <!-- Favicon: Zeigt einen Doktorhut im Browser-Tab an -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+
+    <!-- 
+       ABHÄNGIGKEITEN (CDNs)
+       Das hier macht die Seite "standalone". Es ist keine lokale Installation nötig.
+    -->
+    <!-- 1. Tailwind CSS für das Design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Plotly.js für die interaktiven Graphen -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <!-- 3. Math.js für das Berechnen von Ableitungen im Browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.3.0/math.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* Monospace-Font für mathematische Formeln */
+        .math-font { font-family: 'Courier New', Courier, monospace; }
+        
+        /* Sanfter Übergang für Buttons */
+        button { transition: all 0.2s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white p-4 shadow-lg sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+                    <span>🎓</span> Dein Mathe-Tutor
+                </h1>
+                <p class="text-indigo-200 text-xs md:text-sm">Newton-Verfahren Visualizer (Blatt 11)</p>
+            </div>
+            <button onclick="loadExample('task2')" class="bg-indigo-500 hover:bg-indigo-400 hover:shadow-md px-3 py-1 rounded text-sm font-medium border border-indigo-400">
+                Lade Aufgabe 2
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl mx-auto w-full p-4 flex flex-col md:flex-row gap-6">
+        
+        <!-- Controls & Info Panel (Links) -->
+        <div class="w-full md:w-1/3 bg-white p-6 rounded-xl shadow-md space-y-6 border border-gray-100 h-fit">
+            
+            <!-- Input Section -->
+            <div class="space-y-4">
+                <h2 class="text-lg font-semibold border-b pb-2 text-indigo-600 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Konfiguration
+                </h2>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Funktion f(x)</label>
+                    <input type="text" id="funcInput" value="x^2 - 2" 
+                        class="math-font mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 p-2 border transition-colors hover:bg-white"
+                        placeholder="z.B. x^2 - 2">
+                    <p class="text-xs text-gray-500 mt-1">Syntax: <code>x^2</code>, <code>sin(x)</code>, <code>10*exp(-x^2)-x</code></p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Startwert x₀</label>
+                    <input type="number" id="startInput" value="2" step="0.1"
+                        class="math-font mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 p-2 border transition-colors hover:bg-white">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="initNewton()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2 px-4 rounded-md shadow-sm font-medium active:transform active:scale-95">
+                        Start / Reset
+                    </button>
+                    <button id="stepBtn" onclick="nextStep()" disabled class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed active:transform active:scale-95">
+                        Nächster Schritt
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status & Results -->
+            <div class="space-y-4">
+                <h2 class="text-lg font-semibold border-b pb-2 text-indigo-600 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    Verlauf
+                </h2>
+                
+                <!-- Didaktik-Box -->
+                <div id="hintBox" class="bg-blue-50 border-l-4 border-blue-500 p-4 text-sm text-blue-700 hidden rounded-r-md shadow-sm">
+                    <p class="font-bold mb-1">💡 Tutor-Hinweis:</p>
+                    <span id="hintText">Starte das Verfahren, um Hinweise zu erhalten.</span>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-gray-100 font-medium text-gray-600">
+                            <tr>
+                                <th class="px-3 py-2">n</th>
+                                <th class="px-3 py-2">x_n</th>
+                                <th class="px-3 py-2">f(x_n)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultBody" class="divide-y divide-gray-200 math-font bg-white">
+                            <!-- Rows added by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="text-xs text-gray-400 text-center italic mt-2">
+                    Max. 20 Schritte werden berechnet.
+                </div>
+            </div>
+        </div>
+
+        <!-- Graph Panel (Rechts) -->
+        <div class="w-full md:w-2/3 bg-white p-1 rounded-xl shadow-md flex flex-col border border-gray-100 overflow-hidden relative">
+            <div id="plotDiv" class="w-full flex-grow min-h-[500px] md:min-h-[600px]"></div>
+            
+            <!-- Overlay Info -->
+            <div class="absolute bottom-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-500 pointer-events-none border border-gray-200">
+                Interaktiv: Scrollen zum Zoomen
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm mt-8">
+        <p class="mb-2">Erstellt für dein Mathe-Tutorium &hearts;</p>
+        <p class="text-xs opacity-60">
+            Powered by Tailwind CSS, Plotly.js & Math.js (keine Installation nötig)
+        </p>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        let currentStep = 0;
+        let x_curr = 0;
+        let funcCompiled = null;
+        let derivCompiled = null;
+        let history = [];
+        let maxSteps = 20;
+
+        // Initialize Plotly
+        const layout = {
+            title: 'Funktionsgraph & Tangenten',
+            font: { family: 'Segoe UI, sans-serif' },
+            xaxis: { title: 'x', zeroline: true, gridcolor: '#f3f4f6' },
+            yaxis: { title: 'f(x)', zeroline: true, scaleanchor: "x", scaleratio: 1, gridcolor: '#f3f4f6' },
+            showlegend: true,
+            hovermode: 'closest',
+            shapes: [], // For tangent lines
+            annotations: [],
+            margin: {l: 50, r: 20, t: 50, b: 50}
+        };
+        
+        const config = {responsive: true, displayModeBar: true, displaylogo: false};
+
+        Plotly.newPlot('plotDiv', [{x:[], y:[], type:'scatter'}], layout, config);
+
+        // Helper: Format number
+        function fmt(n) { 
+            if (Math.abs(n) < 1e-10) return "0";
+            return math.round(n, 5); 
+        }
+
+        function loadExample(type) {
+            if (type === 'task2') {
+                // Aufgabe 2: f(x) = 10*exp(-x^2) - x
+                document.getElementById('funcInput').value = "10 * exp(-x^2) - x";
+                document.getElementById('startInput').value = "0.5"; // Schlechter Startwert zum Testen
+                initNewton();
+                document.getElementById('hintText').textContent = "Beispiel aus Aufgabe 2 geladen. Achte auf den Startwert!";
+                document.getElementById('hintBox').classList.remove('hidden');
+            }
+        }
+
+        function initNewton() {
+            const funcStr = document.getElementById('funcInput').value;
+            const startVal = parseFloat(document.getElementById('startInput').value);
+
+            if (isNaN(startVal)) {
+                alert("Bitte einen gültigen Startwert eingeben.");
+                return;
+            }
+
+            try {
+                // 1. Compile Function and Derivative
+                const node = math.parse(funcStr);
+                funcCompiled = node.compile();
+                const derivNode = math.derivative(node, 'x');
+                derivCompiled = derivNode.compile();
+
+                // 2. Reset State
+                currentStep = 0;
+                x_curr = startVal;
+                history = [];
+                document.getElementById('resultBody').innerHTML = '';
+                document.getElementById('stepBtn').disabled = false;
+                document.getElementById('hintBox').classList.add('hidden');
+
+                // 3. Draw initial Function Graph
+                drawFunction(startVal);
+                
+                // 4. Log step 0
+                addTableRow(0, x_curr, funcCompiled.evaluate({x: x_curr}));
+                
+                // Update Hints
+                updateHints(x_curr);
+
+            } catch (err) {
+                alert("Fehler beim Parsen der Funktion. Bitte Syntax prüfen (z.B. 2*x statt 2x).\n\nFehler: " + err.message);
+            }
+        }
+
+        function drawFunction(centerX) {
+            // Create smart range based on start value
+            const range = 5; 
+            const steps = 300;
+            const xs = [];
+            const ys = [];
+            const xMin = centerX - range;
+            const xMax = centerX + range;
+            
+            for (let i = 0; i <= steps; i++) {
+                const x = xMin + (i/steps) * (xMax - xMin);
+                try {
+                    const y = funcCompiled.evaluate({x: x});
+                    // Filter extreme values for better plotting
+                    if (Math.abs(y) < 100) {
+                        xs.push(x);
+                        ys.push(y);
+                    }
+                } catch(e) {}
+            }
+
+            // Base Trace: The Function
+            const trace1 = {
+                x: xs, y: ys,
+                mode: 'lines',
+                name: 'f(x)',
+                line: {color: '#4f46e5', width: 3}
+            };
+
+            // Trace 2: Zero Line
+            const traceZero = {
+                x: [xMin, xMax], y: [0, 0],
+                mode: 'lines',
+                name: 'x-Achse',
+                line: {color: '#374151', width: 1.5},
+                showlegend: false
+            };
+
+            Plotly.react('plotDiv', [trace1, traceZero], layout, config);
+        }
+
+        function nextStep() {
+            if (currentStep >= maxSteps) return;
+
+            const fx = funcCompiled.evaluate({x: x_curr});
+            const dfx = derivCompiled.evaluate({x: x_curr});
+
+            // Check Derivative Condition (Aufgabe 1, Punkt 2)
+            if (Math.abs(dfx) < 1e-9) {
+                showError("⛔ Waagerechte Tangente! f'(x) ≈ 0. Das Verfahren bricht hier zusammen (Division durch Null).");
+                document.getElementById('stepBtn').disabled = true;
+                return;
+            }
+
+            const x_next = x_curr - (fx / dfx);
+            currentStep++;
+
+            // Visualisierung: Tangente
+            // Tangente geht von (x_curr, fx) nach (x_next, 0)
+            
+            const shapes = document.getElementById('plotDiv').layout.shapes || [];
+            
+            // 1. Line: Vertical drop to curve (visual helper)
+            shapes.push({
+                type: 'line',
+                x0: x_curr, y0: 0,
+                x1: x_curr, y1: fx,
+                line: {color: 'gray', width: 1, dash: 'dot'}
+            });
+
+            // 2. Line: Tangent
+            shapes.push({
+                type: 'line',
+                x0: x_curr, y0: fx,
+                x1: x_next, y1: 0,
+                line: {color: '#ef4444', width: 2} // Red tangent
+            });
+
+            // Update Plot with new shapes
+            Plotly.relayout('plotDiv', {shapes: shapes});
+
+            // Add marker for new x
+            Plotly.addTraces('plotDiv', {
+                x: [x_next],
+                y: [0],
+                mode: 'markers',
+                marker: {color: '#10b981', size: 10, line: {color: 'white', width: 2}},
+                name: `x_${currentStep}`
+            });
+
+            // Update Table & State
+            addTableRow(currentStep, x_next, funcCompiled.evaluate({x: x_next}));
+            x_curr = x_next;
+            
+            updateHints(x_curr);
+        }
+
+        function addTableRow(n, x, fx) {
+            const tbody = document.getElementById('resultBody');
+            const row = `<tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-3 py-2 text-gray-500">${n}</td>
+                <td class="px-3 py-2 font-mono text-indigo-700">${fmt(x)}</td>
+                <td class="px-3 py-2 font-mono text-gray-600">${fmt(fx)}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+            // Auto-scroll table to bottom
+            const container = tbody.parentElement.parentElement;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateHints(x) {
+            const hintBox = document.getElementById('hintBox');
+            const hintText = document.getElementById('hintText');
+            const fx = funcCompiled.evaluate({x: x});
+            const dfx = derivCompiled.evaluate({x: x});
+            
+            // Calculate second derivative roughly for the hint
+            // f''(x) approx (f'(x+h) - f'(x)) / h
+            const h = 1e-5;
+            const dfx_h = derivCompiled.evaluate({x: x+h});
+            const ddfx = (dfx_h - dfx) / h;
+
+            hintBox.classList.remove('hidden');
+
+            let msg = "";
+            let cssClass = "";
+            
+            // Check: Konvergenz
+            if (Math.abs(fx) < 1e-6) {
+                cssClass = "bg-green-50 border-l-4 border-green-500 p-4 text-sm text-green-700 rounded-r-md shadow-sm";
+                msg = "🎉 <b>Nullstelle gefunden!</b> Das Verfahren ist konvergiert.";
+                document.getElementById('stepBtn').disabled = true;
+            } else {
+                cssClass = "bg-blue-50 border-l-4 border-blue-500 p-4 text-sm text-blue-700 rounded-r-md shadow-sm";
+                msg = `<b>Schritt ${currentStep}:</b> `;
+                
+                // Check Aufgabe 1, Bedingung 4: f(x) * f''(x) > 0 ?
+                if (fx * ddfx > 0) {
+                    msg += "✅ <br>Guter Bereich: f(x) und f''(x) haben das gleiche Vorzeichen. Wir nähern uns monoton.";
+                } else {
+                    msg += "⚠️ <br>Vorsicht: f(x) und f''(x) haben unterschiedliche Vorzeichen. Die Tangente könnte uns weit wegschießen (oder in einen Zyklus führen).";
+                }
+            }
+            hintBox.className = cssClass;
+            hintText.innerHTML = msg;
+        }
+
+        function showError(msg) {
+            const hintBox = document.getElementById('hintBox');
+            const hintText = document.getElementById('hintText');
+            hintBox.className = "bg-red-50 border-l-4 border-red-500 p-4 text-sm text-red-700 rounded-r-md shadow-sm";
+            hintBox.classList.remove('hidden');
+            hintText.innerHTML = msg;
+        }
+
+        // Start initially
+        initNewton();
+    </script>
+</body>
+</html>
