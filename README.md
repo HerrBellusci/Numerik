@@ -4,12 +4,10 @@ Die Projekte haben die folgenden externen Bibliotheken, die meist über CDN eing
 
 * [Tailwind CSS](https://tailwindcss.com/) ([MIT Lizenz](https://opensource.org/licenses/MIT)) - Wird in allen Projekten für das Styling verwendet.
 * [MathJax](https://www.mathjax.org/) ([Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)) - Für die Darstellung von LaTeX-Formeln in mehreren Projekten.
-* [Inter Font](https://fonts.google.com/specimen/Inter) ([SIL Open Font License 1.1](https://openfontlicense.org/)) - Schriftart, die in einigen Projekten (z.B. Quadrat-Visualisierung) verwendet wird.
 
 ### Zusätzliche Bibliotheken (Fixpunkt-Labor)
 * [React](https://react.dev/) & [ReactDOM](https://react.dev/) (MIT Lizenz) - Core-Framework für die Interaktivität.
 * [Babel Standalone](https://babeljs.io/) (MIT Lizenz) - Für die Kompilierung von JSX im Browser.
-* [Google Fonts](https://fonts.google.com/) (SIL Open Font License) - Noto Sans & Fira Code.
 
 ### Zusätzliche Bibliotheken (Newton Visualizer)
 * [Plotly.js](https://plotly.com/javascript/) ([MIT Lizenz](https://github.com/plotly/plotly.js/blob/master/LICENSE)) - Für die interaktive Darstellung der Funktionsgraphen und Tangenten.
